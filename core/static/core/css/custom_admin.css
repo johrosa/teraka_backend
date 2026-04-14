@@ -1,0 +1,49 @@
+/* Custom Admin Styles for Teraka */
+:root {
+    --teraka-green: #2d5a27;
+    --teraka-yellow: #f1c40f;
+    --teraka-white: #ffffff;
+}
+
+/* Navbar background */
+.main-header {
+    background-color: var(--teraka-green) !important;
+    border-bottom: 3px solid var(--teraka-yellow) !important;
+}
+
+/* Sidebar background */
+.main-sidebar {
+    background-color: #1e3d1a !important;
+}
+
+/* Sidebar active item */
+.nav-pills .nav-link.active, .nav-item.menu-open > .nav-link {
+    background-color: var(--teraka-yellow) !important;
+    color: #000 !important;
+}
+
+/* Brand logo area */
+.brand-link {
+    background-color: #1e3d1a !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--teraka-green) !important;
+    border-color: var(--teraka-green) !important;
+}
+
+.btn-primary:hover {
+    background-color: #23471e !important;
+}
+
+/* Links */
+a {
+    color: var(--teraka-green);
+}
+
+/* Dashboard cards headers */
+.card-primary.card-outline {
+    border-top: 3px solid var(--teraka-green);
+}
