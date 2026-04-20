@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView
 from core.views import (
+    home_page_view,
     LoginForPostgrestView,
     rbac_hub_view,
     platform_statistics_view,
@@ -38,6 +39,11 @@ from core.admin_dashboard import teraka_admin
 from core.admin import RBACImportView, RBACStatusView
 
 urlpatterns = [
+    # ============================================================================
+    # HOME PAGE
+    # ============================================================================
+    path('', home_page_view, name='home'),
+    
     # IMPORTANT: Ces URLs RBAC doivent être AVANT admin.site.urls pour éviter le catch-all
     # Hub RBAC central
     path('admin/rbac/', rbac_hub_view, name='rbac_hub'),

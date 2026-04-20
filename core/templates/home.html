@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2ecc71;
+            --secondary: #3498db;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --gray: #95a5a6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        /* Header / Navigation */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.9), rgba(52, 152, 219, 0.9)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><path d="M0,300 Q300,200 600,300 T1200,300 L1200,600 L0,600 Z" fill="%23ffffff" opacity="0.1"/></svg>');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5em;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero p {
+            font-size: 1.3em;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 2.5em;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.95em;
+        }
+
+        .stat-sublabel {
+            font-size: 0.85em;
+            color: var(--secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        /* Features Section */
+        .features {
+            background: white;
+            padding: 3rem 2rem;
+            margin: 3rem 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .features h2 {
+            text-align: center;
+            color: var(--dark);
+            margin-bottom: 2rem;
+            font-size: 2em;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature {
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            background: #f8f9fa;
+        }
+
+        .feature h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature p {
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        /* Action Cards */
+        .action-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-card .icon {
+            font-size: 3em;
+            margin-bottom: 1rem;
+        }
+
+        .action-card h3 {
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+
+        .action-card p {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5em;
+            }
+
+            .hero p {
+                font-size: 1.1em;
+            }
+
+            .nav-links {
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* Error Message */
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        /* Section Title */
+        .section-title {
+            text-align: center;
+            color: var(--dark);
+            margin: 3rem 0 2rem 0;
+            font-size: 2em;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid var(--secondary);
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .info-box p {
+            color: #1565c0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <header>
+        <nav>
+            <a href="/" class="logo">
+                🪴 Teraka Platform
+            </a>
+            <ul class="nav-links">
+                <li><a href="#about">À propos</a></li>
+                <li><a href="#statistics">Statistiques</a></li>
+                <li><a href="#features">Fonctionnalités</a></li>
+                {% if is_authenticated %}
+                    {% if is_admin %}
+                        <li><a href="/admin/" class="btn btn-secondary">Admin Panel</a></li>
+                    {% else %}
+                        <li><a href="/admin/" class="btn btn-secondary">Dashboard</a></li>
+                    {% endif %}
+                    <li><a href="/admin/logout/" class="btn btn-outline">Déconnexion</a></li>
+                {% else %}
+                    <li><a href="/admin/login/" class="btn btn-primary">Connexion</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>🪴 Teraka Platform</h1>
+            <p>Système de Suivi Agroforestier Décentralisé</p>
+            <p style="font-size: 1.1em; opacity: 0.9;">
+                Collecte, gestion et analyse de données pour le suivi des forêts et agroforesteries
+            </p>
+            <div class="hero-buttons">
+                {% if is_authenticated %}
+                    {% if is_admin %}
+                        <a href="/admin/" class="btn btn-outline">Accéder à l'Administration</a>
+                        <a href="/api/statistics/" class="btn btn-outline">API Statistiques</a>
+                    {% else %}
+                        <a href="/admin/" class="btn btn-outline">Mon Dashboard</a>
+                    {% endif %}
+                {% else %}
+                    <a href="/admin/login/" class="btn btn-outline">Se Connecter</a>
+                    <a href="#features" class="btn btn-outline">En savoir plus</a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Error Display -->
+        {% if error %}
+        <div class="error-message">
+            <strong>⚠️ Avertissement:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Statistics Section -->
+        <section id="statistics">
+            <h2 class="section-title">📊 Statistiques Globales</h2>
+            
+            <div class="stats-grid">
+                <!-- Communes -->
+                <div class="stat-card">
+                    <div class="stat-icon">🗺️</div>
+                    <div class="stat-value">{{ communes_count }}</div>
+                    <div class="stat-label">Communes</div>
+                </div>
+
+                <!-- Bosquets -->
+                <div class="stat-card">
+                    <div class="stat-icon">🌳</div>
+                    <div class="stat-value">{{ bosquets_total }}</div>
+                    <div class="stat-label">Bosquets</div>
+                    <div class="stat-sublabel">{{ bosquets_suivi }} en suivi</div>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: {{ bosquets_coverage }}%"></div>
+                    </div>
+                    <div class="stat-sublabel">Couverture: {{ bosquets_coverage|floatformat:1 }}%</div>
+                </div>
+
+                <!-- Arbres -->
+                <div class="stat-card">
+                    <div class="stat-icon">🌲</div>
+                    <div class="stat-value">{{ arbres_total }}</div>
+                    <div class="stat-label">Arbres</div>
+                    <div class="stat-sublabel">{{ arbres_suivi }} en suivi</div>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: {{ arbres_coverage }}%"></div>
+                    </div>
+                    <div class="stat-sublabel">Couverture: {{ arbres_coverage|floatformat:1 }}%</div>
+                </div>
+
+                <!-- Membres -->
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value">{{ membres_total }}</div>
+                    <div class="stat-label">Membres</div>
+                    <div class="stat-sublabel">{{ membres_suivi }} en suivi</div>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: {{ membres_coverage }}%"></div>
+                    </div>
+                    <div class="stat-sublabel">Couverture: {{ membres_coverage|floatformat:1 }}%</div>
+                </div>
+
+                <!-- PG (Producteurs Groupés) -->
+                <div class="stat-card">
+                    <div class="stat-icon">🤝</div>
+                    <div class="stat-value">{{ pg_total }}</div>
+                    <div class="stat-label">Producteurs Groupés</div>
+                    <div class="stat-sublabel">{{ pg_suivi }} en suivi</div>
+                    {% if pg_total > 0 %}
+                        <div class="progress-bar">
+                            <div class="progress" style="width: {% widthratio pg_suivi pg_total 100 %}%"></div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="features">
+            <h2>À propos de Teraka Platform</h2>
+            
+            <div class="info-box">
+                <p>
+                    <strong>Teraka</strong> est une plateforme de suivi agroforestier décentralisée conçue pour collecter, gérer et analyser 
+                    des données sur les forêts et les systèmes agroforestiers en Afrique de l'Ouest.
+                </p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature">
+                    <h3>📱 Collecte Mobile-First</h3>
+                    <p>Récupération des données directement sur le terrain via des applications mobiles hors ligne</p>
+                </div>
+                <div class="feature">
+                    <h3>🌍 Géolocalisation Précise</h3>
+                    <p>Suivi géographique des parcelles avec cartographie intégrée et analyse spatiale</p>
+                </div>
+                <div class="feature">
+                    <h3>🔒 Sécurité des Données</h3>
+                    <p>Chiffrement end-to-end et contrôle d'accès basé sur les rôles (RBAC)</p>
+                </div>
+                <div class="feature">
+                    <h3>📊 Analytics Avancés</h3>
+                    <p>Tableaux de bord en temps réel et rapports détaillés sur la santé des forêts</p>
+                </div>
+                <div class="feature">
+                    <h3>🔗 Intégrations API</h3>
+                    <p>APIs RESTful pour l'intégration avec d'autres systèmes d'information</p>
+                </div>
+                <div class="feature">
+                    <h3>🎯 Suivi d'Impact</h3>
+                    <p>Mesure de l'impact environnemental et social des initiatives agroforestières</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features">
+            <h2 class="section-title">✨ Fonctionnalités Principales</h2>
+            
+            <div class="action-cards">
+                <!-- Gestion des Rôles -->
+                <div class="action-card">
+                    <div class="icon">🔐</div>
+                    <h3>Gestion des Rôles (RBAC)</h3>
+                    <p>
+                        Contrôle d'accès granulaire avec 7 niveaux de permission:
+                        Expansion L1/L2, MRV L1/L2/L3, Admin L1/L2
+                    </p>
+                    {% if is_admin %}
+                        <a href="/admin/core/userrole/" class="btn btn-primary">Gérer les Rôles</a>
+                    {% endif %}
+                </div>
+
+                <!-- Statistiques & Monitoring -->
+                <div class="action-card">
+                    <div class="icon">📊</div>
+                    <h3>Statistiques en Temps Réel</h3>
+                    <p>
+                        Accédez aux données de plateforme via des APIs:
+                        Statistiques, Validation, Santé, Qualité des données
+                    </p>
+                    {% if is_admin %}
+                        <a href="/api/statistics/" class="btn btn-primary">API Statistiques</a>
+                    {% endif %}
+                </div>
+
+                <!-- Données Géospatiales -->
+                <div class="action-card">
+                    <div class="icon">🗺️</div>
+                    <h3>Données Géospatiales</h3>
+                    <p>
+                        Suivi des parcelles forestières avec cartographie intégrée 
+                        et analyse spatiale PostGIS
+                    </p>
+                    {% if is_authenticated %}
+                        <a href="/admin/core/" class="btn btn-primary">Voir les Données</a>
+                    {% endif %}
+                </div>
+
+                <!-- Export & Reporting -->
+                <div class="action-card">
+                    <div class="icon">💾</div>
+                    <h3>Export & Rapports</h3>
+                    <p>
+                        Exportez vos données en JSON/CSV, 
+                        générez des rapports détaillés et des statistiques
+                    </p>
+                    {% if is_admin %}
+                        <a href="/api/export/" class="btn btn-primary">API Export</a>
+                    {% endif %}
+                </div>
+
+                <!-- Administration -->
+                <div class="action-card">
+                    <div class="icon">⚙️</div>
+                    <h3>Interface d'Administration</h3>
+                    <p>
+                        Gérez les utilisateurs, les rôles, 
+                        les permissions et les données de la plateforme
+                    </p>
+                    {% if is_authenticated %}
+                        <a href="/admin/" class="btn btn-primary">Accéder à l'Admin</a>
+                    {% else %}
+                        <a href="/admin/login/" class="btn btn-primary">Se Connecter</a>
+                    {% endif %}
+                </div>
+
+                <!-- Documentation -->
+                <div class="action-card">
+                    <div class="icon">📚</div>
+                    <h3>Documentation Complète</h3>
+                    <p>
+                        Guides détaillés, exemples de code, 
+                        documentations API et guides d'intégration
+                    </p>
+                    <a href="#" class="btn btn-secondary">Consulter les Docs</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- User Status -->
+        {% if is_authenticated %}
+        <div class="info-box" style="margin-top: 3rem;">
+            <p>
+                <strong>✅ Vous êtes connecté</strong> en tant que <code>{{ request.user.username }}</code>
+                {% if is_admin %}<span class="status-badge status-success">ADMIN</span>{% endif %}
+            </p>
+        </div>
+        {% else %}
+        <div class="info-box" style="margin-top: 3rem;">
+            <p>
+                <strong>Vous n'êtes pas connecté.</strong> 
+                <a href="/admin/login/">Connectez-vous</a> pour accéder aux fonctionnalités de la plateforme.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            🪴 <strong>Teraka Platform</strong> - Système de Suivi Agroforestier Décentralisé
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.9em;">
+            <a href="/admin/">Administration</a> | 
+            <a href="/api/statistics/">API</a> | 
+            <a href="#">Aide</a> | 
+            <a href="#">Contact</a>
+        </p>
+        <p style="margin-top: 1rem; opacity: 0.7; font-size: 0.85em;">
+            © 2026 Teraka Platform. Tous droits réservés.
+        </p>
+    </footer>
+</body>
+</html>
