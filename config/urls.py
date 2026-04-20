@@ -17,7 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView
-from core.views import LoginForPostgrestView
+from core.views import (
+    LoginForPostgrestView,
+    rbac_hub_view,
+    platform_statistics_view,
+    bosquet_statistics_view,
+    data_validation_view,
+    user_activity_log_view,
+    system_health_view,
+    members_by_region_view,
+    data_quality_report_view,
+    data_export_view,
+)
 
 from django.urls import re_path
 from core.views import PostgrestProxyView
@@ -25,7 +36,6 @@ from core.views import PostgrestProxyView
 # Importer le dashboard personnalisé et les vues RBAC
 from core.admin_dashboard import teraka_admin
 from core.admin import RBACImportView, RBACStatusView
-from core.views import rbac_hub_view
 
 urlpatterns = [
     # IMPORTANT: Ces URLs RBAC doivent être AVANT admin.site.urls pour éviter le catch-all
@@ -42,8 +52,23 @@ urlpatterns = [
     # Admin Django (doit être APRÈS nos routes pour ne pas les intercepter)
     path('admin/', admin.site.urls),
     
+    # ============================================================================
+    # API ENDPOINTS - Gestion et Statistiques
+    # ============================================================================
+    
     # C'est ici que le frontend se connectera pour avoir son Token
     path('api/login/', LoginForPostgrestView.as_view(), name='token_obtain_pair'),
+    
+    # API de gestion et statistiques (admin uniquement)
+    path('api/statistics/', platform_statistics_view, name='api_statistics'),
+    path('api/bosquet-statistics/', bosquet_statistics_view, name='api_bosquet_stats'),
+    path('api/data-validation/', data_validation_view, name='api_data_validation'),
+    path('api/user-activity/', user_activity_log_view, name='api_user_activity'),
+    path('api/system-health/', system_health_view, name='api_system_health'),
+    path('api/members-by-region/', members_by_region_view, name='api_members_region'),
+    path('api/data-quality/', data_quality_report_view, name='api_data_quality'),
+    path('api/export/', data_export_view, name='api_export'),
+    
     # Toutes les requêtes commençant par api/data/ iront vers PostgREST
     re_path(r'^api/data/(?P<path>.*)$', PostgrestProxyView.as_view(), name='postgrest_proxy'),
 ]
