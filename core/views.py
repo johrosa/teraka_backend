@@ -1,3 +1,73 @@
+# ============================================================================
+# HOME PAGE - Page d'accueil de la plateforme
+# ============================================================================
+
+from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
+
+
+@require_http_methods(["GET"])
+def home_page_view(request):
+    """
+    Page d'accueil de la plateforme Teraka
+    Affiche un dashboard public avec statistiques rapides
+    """
+    try:
+        from core.models import (
+            Communes, BosquetBaseline, BosquetSuivi,
+            ArbreBaseline, ArbreSuivi, Membre, MembreSuivi,
+            PgInfos, PgSuivi
+        )
+        
+        context = {
+            'title': 'Teraka Platform - Suivi Agroforestier',
+            'site_header': 'Teraka Platform',
+            'site_title': 'Teraka',
+            
+            # Statistiques globales
+            'communes_count': Communes.objects.count(),
+            'bosquets_total': BosquetBaseline.objects.count(),
+            'bosquets_suivi': BosquetSuivi.objects.count(),
+            'arbres_total': ArbreBaseline.objects.count(),
+            'arbres_suivi': ArbreSuivi.objects.count(),
+            'membres_total': Membre.objects.count(),
+            'membres_suivi': MembreSuivi.objects.count(),
+            'pg_total': PgInfos.objects.count(),
+            'pg_suivi': PgSuivi.objects.count(),
+            
+            # Calculs
+            'bosquets_coverage': (
+                (BosquetSuivi.objects.count() / BosquetBaseline.objects.count() * 100)
+                if BosquetBaseline.objects.count() > 0 else 0
+            ),
+            'arbres_coverage': (
+                (ArbreSuivi.objects.count() / ArbreBaseline.objects.count() * 100)
+                if ArbreBaseline.objects.count() > 0 else 0
+            ),
+            'membres_coverage': (
+                (MembreSuivi.objects.count() / Membre.objects.count() * 100)
+                if Membre.objects.count() > 0 else 0
+            ),
+            'is_authenticated': request.user.is_authenticated,
+            'is_admin': request.user.is_superuser if request.user.is_authenticated else False,
+        }
+        
+        return render(request, 'home.html', context)
+    
+    except Exception as e:
+        # En cas d'erreur, afficher une page simple
+        context = {
+            'title': 'Teraka Platform',
+            'error': str(e),
+            'is_authenticated': request.user.is_authenticated,
+        }
+        return render(request, 'home.html', context)
+
+
+# ============================================================================
+# LOGIN & AUTHENTICATION
+# ============================================================================
+
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import PostgrestTokenSerializer
 
