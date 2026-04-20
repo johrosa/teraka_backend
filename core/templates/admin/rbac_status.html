@@ -1,0 +1,220 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+
+{% block title %}Statut RBAC{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Accueil</a>
+    &rsaquo; <a href="{% url 'admin:core_rbacadmin_changelist' %}">RBAC</a>
+    &rsaquo; Statut des permissions
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rbac-status-container">
+
+    <div class="rbac-header">
+        <h1>🔐 Statut des permissions RBAC</h1>
+        <p class="rbac-subtitle">Vue d'ensemble des rôles et permissions actuels</p>
+        <div class="rbac-actions">
+            <a href="{% url 'admin:core_rbacadmin_changelist' %}" class="button">← Retour à RBAC</a>
+            <a href="import-rbac/" class="button primary">Importer nouvelle matrice</a>
+        </div>
+    </div>
+
+    {% for role_data in permissions_data %}
+    <div class="role-section">
+        <h2>{{ role_data.role }}</h2>
+        <div class="permissions-grid">
+            {% for table, privileges in role_data.permissions.items %}
+            <div class="permission-card">
+                <div class="table-name">{{ table }}</div>
+                <div class="privileges">
+                    {% for privilege in privileges %}
+                    <span class="privilege-badge privilege-{{ privilege|lower }}">
+                        {{ privilege }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if not role_data.permissions %}
+        <div class="no-permissions">
+            <p>Aucune permission assignée à ce rôle.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if not permissions_data %}
+    <div class="no-data">
+        <h3>⚠️ Aucun rôle RBAC trouvé</h3>
+        <p>Importez une matrice RBAC pour créer les rôles et permissions.</p>
+        <a href="import-rbac/" class="button primary">Importer matrice RBAC</a>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+.rbac-status-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.rbac-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.rbac-header h1 {
+    color: #2c3e50;
+    font-size: 2.2em;
+    margin-bottom: 10px;
+}
+
+.rbac-subtitle {
+    color: #7f8c8d;
+    font-size: 1.1em;
+    margin-bottom: 20px;
+}
+
+.rbac-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.rbac-actions .button {
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.rbac-actions .button.primary {
+    background: #007bff;
+    color: white;
+}
+
+.rbac-actions .button.primary:hover {
+    background: #0056b3;
+}
+
+.rbac-actions .button:hover {
+    transform: translateY(-1px);
+}
+
+.role-section {
+    margin-bottom: 40px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.role-section h2 {
+    background: #3498db;
+    color: white;
+    margin: 0;
+    padding: 20px;
+    font-size: 1.4em;
+}
+
+.permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    padding: 20px;
+}
+
+.permission-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid #3498db;
+}
+
+.table-name {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.privileges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.privilege-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.privilege-select { background: #28a745; color: white; }
+.privilege-insert { background: #17a2b8; color: white; }
+.privilege-update { background: #ffc107; color: black; }
+.privilege-delete { background: #dc3545; color: white; }
+
+.no-permissions {
+    padding: 40px 20px;
+    text-align: center;
+    color: #6c757d;
+}
+
+.no-permissions p {
+    font-style: italic;
+    margin: 0;
+}
+
+.no-data {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.no-data h3 {
+    color: #856404;
+    margin-bottom: 15px;
+}
+
+.no-data p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .rbac-status-container {
+        padding: 10px;
+    }
+
+    .permissions-grid {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+
+    .rbac-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .role-section h2 {
+        padding: 15px;
+        font-size: 1.2em;
+    }
+}
+</style>
+{% endblock %}

@@ -33,3 +33,27 @@ class PostgrestProxyView(ProxyView):
         headers = super().get_proxy_request_headers(request)
         # On peut ici ajouter ou modifier des headers si besoin
         return headers
+
+
+# ============================================================================
+# RBAC HUB - Page centrale pour gérer les permissions RBAC
+# ============================================================================
+
+from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.http import require_http_methods
+
+
+@staff_member_required
+@require_http_methods(["GET"])
+def rbac_hub_view(request):
+    """
+    Hub central RBAC - Page d'accueil pour gérer les rôles et permissions
+    Accessible uniquement aux administrateurs.
+    """
+    context = {
+        'title': 'RBAC - Gestion des permissions',
+        'site_header': 'Administration Teraka',
+        'site_title': 'Teraka Platform',
+    }
+    return render(request, 'admin/rbac_hub.html', context)

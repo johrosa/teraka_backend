@@ -5,7 +5,19 @@ import xml.etree.ElementTree as ET
 import zipfile
 from django.core.management.base import BaseCommand
 from django.apps import apps
-from django.contrib.gis.gdal import DataSource
+try:
+    from django.contrib.gis.gdal import DataSource
+except ImportError:
+    DataSource = None
+    try:
+        from osgeo import ogr
+    except ImportError as e:
+        raise ImportError(
+            "Neither django.contrib.gis.gdal.DataSource nor osgeo.ogr are available. "
+            "Install GDAL and ensure OSGeo is on PYTHONPATH."
+        ) from e
+else:
+    ogr = None
 from django.db import connection, models, transaction
 from django.contrib.gis.geos import GEOSGeometry
 
@@ -98,10 +110,46 @@ class Command(BaseCommand):
                 return field
         return None
 
+    def open_data_source(self, file_path):
+        if DataSource is not None:
+            return DataSource(file_path)
+        ds = ogr.Open(file_path)
+        if ds is None:
+            raise ValueError(f"Impossible d'ouvrir la source GDAL : {file_path}")
+        return ds
+
+    def get_layer_from_source(self, ds):
+        if hasattr(ds, '__getitem__'):
+            return ds[0]
+        return ds.GetLayer(0)
+
+    def get_feature_value(self, feature, field_name):
+        if hasattr(feature, 'get'):
+            return feature.get(field_name)
+        if hasattr(feature, 'GetField'):
+            return feature.GetField(field_name)
+        return None
+
+    def get_feature_geometry(self, feature):
+        if hasattr(feature, 'geom'):
+            return feature.geom
+        if hasattr(feature, 'GetGeometryRef'):
+            return feature.GetGeometryRef()
+        return None
+
+    def geometry_wkt(self, geom):
+        if geom is None:
+            return None
+        if hasattr(geom, 'wkt'):
+            return geom.wkt
+        if hasattr(geom, 'ExportToWkt'):
+            return geom.ExportToWkt()
+        return str(geom)
+
     def import_features_direct(self, model, layer, clear_table=False):
         """
-        Importe les features directement via GDAL + Django ORM.
-        Évite les problèmes de LayerMapping avec les BooleanFields.
+        Importe les features via GDAL + Django ORM avec gestion des MultiPolygon
+        et logging détaillé des mappings de champs.
         """
         table_name = model._meta.db_table
 
@@ -111,38 +159,45 @@ class Command(BaseCommand):
                 cursor.execute(f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE;')
                 self.stdout.write(f"Table {table_name} vidée")
 
-        # Récupérer les champs du modèle
         model_fields = {f.name: f for f in model._meta.fields if not f.primary_key}
         geom_field = self.get_geometry_field(model)
-
-        # Récupérer les champs de la source GDAL
         source_fields = [str(f) for f in layer.fields]
 
         imported_count = 0
         error_count = 0
 
-        # Parcourir chaque feature
         for feature in layer:
             try:
                 with transaction.atomic():
-                    # Créer un dictionnaire de données pour l'instance
                     instance_data = {}
 
-                    # Mapper les champs
                     for field_name, field_obj in model_fields.items():
-                        # Skip les champs système
+                        # Skip champs système
                         if field_name in ['id', 'created_at', 'updated_at']:
                             continue
 
-                        # Skip les BooleanFields (problématiques)
+                        # Skip BooleanFields (problématiques)
                         if isinstance(field_obj, models.BooleanField):
                             continue
 
-                        # Géométrie
+                        # --- LOGIQUE GÉOMÉTRIE (CORRECTION MULTIPOLYGON) ---
                         if geom_field and field_name == geom_field.name:
                             try:
-                                geom_wkt = feature.geom.wkt
-                                instance_data[field_name] = GEOSGeometry(geom_wkt)
+                                geom = self.get_feature_geometry(feature)
+                                if geom is None:
+                                    continue
+                                geom_type = getattr(geom, 'geom_type', None)
+                                if geom_type is None and hasattr(geom, 'GetGeometryName'):
+                                    geom_type = geom.GetGeometryName()
+                                # Si le modèle attend un Polygon mais reçoit un MultiPolygon
+                                if isinstance(field_obj, models.PolygonField) and geom_type in ('MultiPolygon', 'MULTIPOLYGON'):
+                                    if hasattr(geom, 'GetGeometryRef'):
+                                        first_geom = geom.GetGeometryRef(0)
+                                        instance_data[field_name] = GEOSGeometry(self.geometry_wkt(first_geom))
+                                    else:
+                                        instance_data[field_name] = GEOSGeometry(self.geometry_wkt(geom[0]))
+                                else:
+                                    instance_data[field_name] = GEOSGeometry(self.geometry_wkt(geom))
                             except Exception:
                                 continue
                             continue
@@ -154,65 +209,33 @@ class Command(BaseCommand):
 
                         source_field_name = matches[0]
 
-                        try:
-                            value = feature.get(source_field_name)
+                        # --- LOGGING DU MATCHING ---
+                        logging.info(
+                            f"Mapping pour {table_name}: '{field_name}' (DB) <-> '{source_field_name}' (Source)")
 
-                            # Si None ou vide, skip
+                        try:
+                            value = self.get_feature_value(feature, source_field_name)
                             if value is None or value == '':
                                 continue
 
-                            # Gestion des ForeignKey
+                            # Gestion des types de champs
                             if isinstance(field_obj, (models.ForeignKey, models.OneToOneField)):
-                                # Récupérer le modèle et champ cible
                                 related_model = field_obj.remote_field.model
-                                if hasattr(field_obj.remote_field, 'field_name') and field_obj.remote_field.field_name:
-                                    target_field = field_obj.remote_field.field_name
-                                else:
-                                    target_field = 'id'
-
-                                # Rechercher l'objet lié
-                                try:
-                                    related_obj = related_model.objects.get(**{target_field: value})
-                                    instance_data[field_name] = related_obj
-                                except related_model.DoesNotExist:
-                                    continue
-                                except Exception:
-                                    continue
-
-                            # Gestion des UUIDField
-                            elif isinstance(field_obj, models.UUIDField):
-                                instance_data[field_name] = value
-
-                            # Gestion des IntegerField
-                            elif isinstance(field_obj, (models.IntegerField, models.BigIntegerField, models.SmallIntegerField)):
-                                try:
-                                    instance_data[field_name] = int(value)
-                                except (ValueError, TypeError):
-                                    continue
-
-                            # Gestion des FloatField
+                                target_field = getattr(field_obj.remote_field, 'field_name', 'id') or 'id'
+                                instance_data[field_name] = related_model.objects.get(**{target_field: value})
+                            elif isinstance(field_obj,
+                                            (models.IntegerField, models.BigIntegerField, models.SmallIntegerField)):
+                                instance_data[field_name] = int(value)
                             elif isinstance(field_obj, models.FloatField):
-                                try:
-                                    instance_data[field_name] = float(value)
-                                except (ValueError, TypeError):
-                                    continue
-
-                            # Gestion des DateTimeField
-                            elif isinstance(field_obj, models.DateTimeField):
-                                instance_data[field_name] = value
-
-                            # Gestion des TextField/CharField
+                                instance_data[field_name] = float(value)
                             elif isinstance(field_obj, (models.TextField, models.CharField)):
                                 instance_data[field_name] = str(value)
-
-                            # Autres types
                             else:
                                 instance_data[field_name] = value
 
-                        except Exception as e:
+                        except Exception:
                             continue
 
-                    # Créer l'instance
                     if instance_data:
                         model.objects.create(**instance_data)
                         imported_count += 1
@@ -375,8 +398,8 @@ class Command(BaseCommand):
 
             try:
                 # Lecture de la source de données GDAL
-                ds = DataSource(file_path)
-                layer = ds[0]
+                ds = self.open_data_source(file_path)
+                layer = self.get_layer_from_source(ds)
 
                 # Importation directe via GDAL + ORM
                 imported, errors = self.import_features_direct(model, layer, clear_tables)

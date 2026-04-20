@@ -22,9 +22,26 @@ from core.views import LoginForPostgrestView
 from django.urls import re_path
 from core.views import PostgrestProxyView
 
+# Importer le dashboard personnalisé et les vues RBAC
+from core.admin_dashboard import teraka_admin
+from core.admin import RBACImportView, RBACStatusView
+from core.views import rbac_hub_view
 
 urlpatterns = [
+    # IMPORTANT: Ces URLs RBAC doivent être AVANT admin.site.urls pour éviter le catch-all
+    # Hub RBAC central
+    path('admin/rbac/', rbac_hub_view, name='rbac_hub'),
+    
+    # URLs RBAC autonomes
+    path('admin/rbac/import/', RBACImportView.as_view(), name='rbac_import'),
+    path('admin/rbac/status/', RBACStatusView.as_view(), name='rbac_status'),
+    
+    # Dashboard Teraka personnalisé
+    path('admin/dashboard/', teraka_admin.admin_view(teraka_admin.dashboard_view), name='teraka_dashboard'),
+    
+    # Admin Django (doit être APRÈS nos routes pour ne pas les intercepter)
     path('admin/', admin.site.urls),
+    
     # C'est ici que le frontend se connectera pour avoir son Token
     path('api/login/', LoginForPostgrestView.as_view(), name='token_obtain_pair'),
     # Toutes les requêtes commençant par api/data/ iront vers PostgREST

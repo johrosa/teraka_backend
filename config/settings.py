@@ -84,6 +84,7 @@ JAZZMIN_SETTINGS = {
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
     "changeform_format_overrides": {"auth.user": "collapsible_list", "auth.group": "vertical_tabs"},
+    "default_theme_mode": "auto",
 }
 
 JAZZMIN_UI_TWEAKS = {
@@ -107,7 +108,6 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
     "theme": "flatly",
-    "dark_mode_theme": None,
     "button_classes": {
         "primary": "btn-primary",
         "secondary": "btn-secondary",
@@ -196,6 +196,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True # À restreindre en production
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+CORS_ALLOW_CREDENTIALS = True
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 

@@ -1,0 +1,348 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+
+{% block title %}RBAC - Gestion des permissions{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Accueil</a>
+    &rsaquo; RBAC
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rbac-hub">
+
+    <header class="rbac-header">
+        <h1>🔐 Gestion RBAC - Rôles et Permissions</h1>
+        <p>Gérez les rôles PostgreSQL, les utilisateurs et les permissions d'accès</p>
+    </header>
+
+    <!-- Section principale -->
+    <div class="rbac-main-grid">
+
+        <!-- 1. Gestion des rôles utilisateurs -->
+        <div class="rbac-card">
+            <div class="card-icon">👤</div>
+            <h2>Gestion des rôles utilisateurs</h2>
+            <p>Associez les rôles PostgreSQL aux utilisateurs Django</p>
+            <ul>
+                <li>Affecter un rôle à un utilisateur</li>
+                <li>Modifier les rôles existants</li>
+                <li>Voir l'historique des changements</li>
+            </ul>
+            <a href="{% url 'admin:core_userrole_changelist' %}" class="btn btn-primary">
+                Gérer les rôles →
+            </a>
+        </div>
+
+        <!-- 2. Importer la matrice RBAC -->
+        <div class="rbac-card">
+            <div class="card-icon">📥</div>
+            <h2>Importer la matrice RBAC</h2>
+            <p>Appliquez une nouvelle matrice de permissions depuis un fichier CSV/Excel</p>
+            <ul>
+                <li>Créer les rôles PostgreSQL</li>
+                <li>Réinitialiser les permissions</li>
+                <li>Appliquer la matrice complète</li>
+            </ul>
+            <a href="{% url 'rbac_import' %}" class="btn btn-success">
+                Importer →
+            </a>
+        </div>
+
+        <!-- 3. Consulter le statut RBAC -->
+        <div class="rbac-card">
+            <div class="card-icon">📊</div>
+            <h2>Statut des permissions RBAC</h2>
+            <p>Consultez l'état actuel de toutes les permissions par rôle et par table</p>
+            <ul>
+                <li>Rôles PostgreSQL configurés</li>
+                <li>Tables sécurisées</li>
+                <li>Permissions détaillées</li>
+            </ul>
+            <a href="{% url 'rbac_status' %}" class="btn btn-info">
+                Voir le statut →
+            </a>
+        </div>
+
+        <!-- 4. Dashboard Teraka -->
+        <div class="rbac-card">
+            <div class="card-icon">📈</div>
+            <h2>Dashboard Teraka</h2>
+            <p>Vue d'ensemble statistique de la plateforme Teraka</p>
+            <ul>
+                <li>Statistiques utilisateurs</li>
+                <li>Données géographiques</li>
+                <li>Répartition des rôles</li>
+            </ul>
+            <a href="{% url 'teraka_dashboard' %}" class="btn btn-warning">
+                Voir le dashboard →
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Informations supplémentaires -->
+    <section class="rbac-info">
+        <h2>ℹ️ À propos du système RBAC</h2>
+        <div class="info-grid">
+            <div class="info-box">
+                <h3>🎯 Rôles configurés</h3>
+                <ul>
+                    <li><strong>Expansion_L1</strong>: Création seulement</li>
+                    <li><strong>Expansion_L2</strong>: Lecture + Modification</li>
+                    <li><strong>MRV_L1</strong>: Lecture seule</li>
+                    <li><strong>MRV_L2</strong>: Lecture + Modification</li>
+                    <li><strong>MRV_L3</strong>: Lecture + Modification + Validation</li>
+                    <li><strong>Admin_L1</strong>: Lecture + Modification</li>
+                    <li><strong>Admin_L2</strong>: Lecture + Modification + Suppression</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h3>🔗 Intégration</h3>
+                <p><strong>PostgREST</strong> utilise les rôles PostgreSQL pour enforcer les permissions:</p>
+                <ul>
+                    <li>Les tokens JWT incluent le rôle de l'utilisateur</li>
+                    <li>PostgREST exécute les requêtes avec les permissions du rôle</li>
+                    <li>Accès refusé (403) si le rôle n'a pas les droits</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h3>📋 Format de la matrice</h3>
+                <p>La matrice RBAC doit être en CSV ou Excel avec:</p>
+                <ul>
+                    <li>Colonne 1: Nom de la table</li>
+                    <li>Colonnes suivantes: Codes de permission (C/R/U/D/V/-)</li>
+                    <li>Codes: C=Create, R=Read, U=Update, D=Delete, V=Validate</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<style>
+.rbac-hub {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.rbac-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.rbac-header h1 {
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.rbac-header p {
+    font-size: 1.2em;
+    color: #7f8c8d;
+}
+
+/* Grille des cartes */
+.rbac-main-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 50px;
+}
+
+.rbac-card {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.rbac-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.rbac-card .card-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+.rbac-card h2 {
+    color: #2c3e50;
+    font-size: 1.4em;
+    margin: 0 0 15px 0;
+}
+
+.rbac-card p {
+    color: #7f8c8d;
+    margin: 0 0 15px 0;
+    flex-grow: 1;
+}
+
+.rbac-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    font-size: 0.95em;
+    color: #555;
+}
+
+.rbac-card li {
+    padding: 5px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.rbac-card li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.rbac-card .btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    text-align: center;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    align-self: flex-start;
+}
+
+.rbac-card .btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.rbac-card .btn-primary:hover {
+    background: #2980b9;
+}
+
+.rbac-card .btn-success {
+    background: #27ae60;
+    color: white;
+}
+
+.rbac-card .btn-success:hover {
+    background: #229954;
+}
+
+.rbac-card .btn-info {
+    background: #16a085;
+    color: white;
+}
+
+.rbac-card .btn-info:hover {
+    background: #138d75;
+}
+
+.rbac-card .btn-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.rbac-card .btn-warning:hover {
+    background: #d68910;
+}
+
+/* Section informations */
+.rbac-info {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 40px;
+    margin-top: 40px;
+}
+
+.rbac-info h2 {
+    color: #2c3e50;
+    font-size: 2em;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+}
+
+.info-box {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.info-box h3 {
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.info-box p {
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.info-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-box li {
+    color: #555;
+    padding: 5px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.info-box li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #3498db;
+    font-weight: bold;
+}
+
+.info-box strong {
+    color: #2c3e50;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .rbac-hub {
+        padding: 10px;
+    }
+
+    .rbac-header h1 {
+        font-size: 1.8em;
+    }
+
+    .rbac-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rbac-info {
+        padding: 20px;
+    }
+}
+</style>
+{% endblock %}

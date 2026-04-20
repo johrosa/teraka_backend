@@ -1,0 +1,75 @@
+C = Create							
+R = Read							
+U = Update							
+D = Delete							
+V = Validate 							
+- = Aucun accès							
+							
+							
+Table	Expansion_L1	Expansion_L2	MRV_L1	MRV_L2	MRV_L3	Admin_L1	Admin_L2
+answer_invasif_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_cobenefice_arbre_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_cobenefice_arbre_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_cobenefice_arbre_membre_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_invasif_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_lutte_invasif_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_lutte_invasif_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_bien_fait_agroforesterie_membre_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_nuisible_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_nuisible_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_lutte_nuisible_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_lutte_nuisible_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_produit_arbre_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_produit_arbre_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_produit_arbre_membre_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_sol_actuel_bosquet_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_sol_actuel_bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_sourcing_graine_arbre_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_sourcing_graine_arbre_suivi	C	RU	R	RU	RUV	RU	RUD
+answer_sourcing_plant_arbre_baseline	C	RU	R	RU	RUV	RU	RUD
+answer_sourcing_plant_arbre_suivi	C	RU	R	RU	RUV	RU	RUD
+arbre_gps	C	RU	R	RU	RU	RU	RUD
+arbre_suivi	C	RU	R	RU	RUV	RU	RUD
+arbre_baseline	R	RU	R	RU	RUV	RU	RUD
+bosquet_baseline	R	RU	R	RU	RUV	RU	RUD
+bosquet_suivi	C	RU	R	RU	RUV	RU	RUD
+bosquet_gps	C	RU	R	RU	RU	RU	RUD
+bosquet_evenement	C	RU	R	RU	RUV	RU	RUD
+bosquet_evenement_document	C	RU	R	RU	RU	RU	RUD
+bosquet_geom_historique	R	R	R	R	R	R	R
+bosquet_photo_document	C	RU	R	RU	RU	RU	RUD
+membre	C	RU	R	RU	RU	RU	RUD
+membre_suivi	C	RU	R	RU	RUV	RU	RUD
+membre_inscrit	R	RU	R	RU	RU	RU	RUD
+pg_infos	R	RU	R	RU	RU	RU	RUD
+pg_suivi	C	RU	R	RU	RUV	RU	RUD
+pg_suivi_admin	-	-	R	RU	RUV	RU	RUD
+pg_document	C	RU	R	RU	RU	RU	RUD
+pg_photo	C	RU	R	RU	RU	RU	RUD
+pg_photo_document	C	RU	R	RU	RU	RU	RUD
+pg_gps	C	RU	R	RU	RU	RU	RUD
+pg_statut_historique	R	R	R	R	R	R	R
+pg_membre_evenement	C	RU	R	RU	RU	RU	RUD
+pg_nouveau_membre	C	RU	R	RU	RU	RU	RUD
+paiement_pg	R	-	R	RU	RUV	RU	RUD
+paiement_pg_historique	R	R	R	R	R	R	R
+paiement_membre	R	-	R	RU	RUV	RU	RUD
+audit_log	-	-	R	R	R	R	R
+audit_readable_view	R	R	R	R	R	R	R
+audit_diff_view	R	R	R	R	R	R	R
+communes	R	R	R	R	R	R	R
+especes_arbres	R	R	R	R	R	R	R
+invasifs	R	R	R	R	R	R	R
+lutte_invasifs	R	R	R	R	R	R	R
+lutte_nuisibles	R	R	R	R	R	R	R
+nuisibles	R	R	R	R	R	R	R
+produits_arbres	R	R	R	R	R	R	R
+sourcing_graines	R	R	R	R	R	R	R
+sourcing_plants	R	R	R	R	R	R	R
+sol_couleurs	R	R	R	R	R	R	R
+sol_types	R	R	R	R	R	R	R
+topographies	R	R	R	R	R	R	R
+type_doc_foncier	R	R	R	R	R	R	R
+utilisation_arbres	R	R	R	R	R	R	R
+utilisation_sol_bosquets	R	R	R	R	R	R	R
+users	-	-	R	R	R	RU	RUD

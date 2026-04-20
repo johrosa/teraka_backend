@@ -1,7 +1,87 @@
-{% extends "admin/change_list.html" %}
-{% block object-tools-items %}
-    <li>
-        <a href="import-rbac/" class="addlink">Importer Matrice RBAC</a>
-    </li>
-    {{ block.super }}
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+
+{% block title %}Gestion RBAC{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Accueil</a>
+    &rsaquo; Gestion RBAC
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rbac-management">
+
+    <h1>🔐 Gestion RBAC</h1>
+
+    <div class="rbac-actions">
+        <a href="{% url 'rbac_import' %}" class="button">
+            <span>📥 Importer Matrice RBAC</span>
+            <small>Appliquer une nouvelle matrice de permissions</small>
+        </a>
+
+        <a href="{% url 'rbac_status' %}" class="button">
+            <span>📊 Voir Statut RBAC</span>
+            <small>Consulter les permissions actuelles</small>
+        </a>
+
+        <a href="{% url 'admin:core_userrole_changelist' %}" class="button">
+            <span>👤 Gérer les rôles utilisateurs</span>
+            <small>Assigner les rôles aux utilisateurs</small>
+        </a>
+    </div>
+
+</div>
+
+<style>
+.rbac-management {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.rbac-management h1 {
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+
+.rbac-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.rbac-actions .button {
+    display: block;
+    background: white;
+    border: 2px solid #3498db;
+    border-radius: 10px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+}
+
+.rbac-actions .button:hover {
+    background: #f8f9fa;
+    border-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+}
+
+.rbac-actions .button span {
+    display: block;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.rbac-actions .button small {
+    display: block;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+</style>
 {% endblock %}

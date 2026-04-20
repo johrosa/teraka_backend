@@ -1,0 +1,137 @@
+/* Styles personnalisés pour l'admin UserRole */
+
+.userrole-admin {
+    /* Styles pour la liste des rôles */
+}
+
+.userrole-admin .field-role select {
+    font-weight: bold;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.userrole-admin .field-role .help {
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+/* Styles pour les badges de rôle */
+.role-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.role-badge.expansion { background: #e8f5e8; color: #2e7d32; border: 1px solid #4caf50; }
+.role-badge.mrv { background: #e3f2fd; color: #1565c0; border: 1px solid #2196f3; }
+.role-badge.admin { background: #ffebee; color: #c62828; border: 1px solid #f44336; }
+
+/* Améliorer l'apparence des fieldsets */
+.userrole-admin .fieldset {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.userrole-admin .fieldset .fieldBox {
+    padding: 15px;
+    background: #fafafa;
+}
+
+.userrole-admin .fieldset h2 {
+    background: #f8f9fa;
+    margin: 0;
+    padding: 12px 15px;
+    font-size: 1.1em;
+    border-bottom: 1px solid #ddd;
+    color: #2c3e50;
+}
+
+/* Styles pour les messages de validation */
+.userrole-admin .errornote {
+    background: #ffebee;
+    border: 1px solid #f44336;
+    color: #c62828;
+}
+
+.userrole-admin .success {
+    background: #e8f5e8;
+    border: 1px solid #4caf50;
+    color: #2e7d32;
+}
+
+/* Améliorer les boutons d'action */
+.userrole-admin .submit-row {
+    background: #f8f9fa;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    text-align: right;
+}
+
+.userrole-admin .submit-row input[type="submit"] {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.userrole-admin .submit-row input[type="submit"]:hover {
+    background: #0056b3;
+}
+
+/* Styles pour la liste changelist */
+#changelist .results {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#changelist .results thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+}
+
+#changelist .results tbody tr:hover {
+    background: #f8f9fa;
+}
+
+#changelist .results tbody td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+/* Indicateur d'utilisateur actif */
+.boolean-icon.true {
+    color: #28a745;
+}
+
+.boolean-icon.false {
+    color: #dc3545;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .userrole-admin .fieldBox {
+        padding: 10px;
+    }
+
+    .userrole-admin .submit-row {
+        text-align: center;
+    }
+
+    .userrole-admin .submit-row input[type="submit"] {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}

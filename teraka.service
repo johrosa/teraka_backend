@@ -1,0 +1,33 @@
+[Unit]
+Description=Teraka Platform Backend (Django + PostgREST)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/teraka_platform/backend_django
+Environment="PATH=/var/www/teraka_platform/backend_django/venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=/var/www/teraka_platform/backend_django/.env
+
+ExecStart=/var/www/teraka_platform/backend_django/venv/bin/python run_servers.py --env production
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Process management
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=teraka
+
+[Install]
+WantedBy=multi-user.target
