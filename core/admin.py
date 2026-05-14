@@ -1,23 +1,83 @@
 from django.contrib.gis import admin
 from django.apps import apps
+from core.models import (
+    Membre, ArbreBaseline, ArbreSuivi, BosquetBaseline, BosquetSuivi,
+    PgInfos, Communes, EspecesArbres, Users
+)
+from core.models_rbac import UserRole
+
+# --- Configuration spécialisée pour les modèles clés ---
+
+@admin.register(Membre)
+class MembreAdmin(admin.ModelAdmin):
+    list_display = ('nom_prenom_membre', 'c_com', 'statut_membre', 'genre', 'annee_inscription', 'pepinieriste', 'leader')
+    list_filter = ('statut_membre', 'genre', 'pepinieriste', 'leader', 'c_com')
+    search_fields = ('nom_membre', 'prenom_membre', 'cin', 'tel', 'code_pg')
+    list_per_page = 20
+
+@admin.register(ArbreBaseline)
+class ArbreBaselineAdmin(admin.ModelAdmin):
+    list_display = ('uuid_arbre_baseline', 'uuid_espece', 'c_com', 'date_baseline', 'age', 'statut_arbre_gps')
+    list_filter = ('uuid_espece', 'c_com', 'date_baseline')
+    search_fields = ('uuid_arbre_baseline', 'autre_espece')
+
+    def statut_arbre_gps(self, obj):
+        return obj.uuid_arbre_gps.statut_arbre if obj.uuid_arbre_gps else "-"
+    statut_arbre_gps.short_description = "Statut GPS"
+
+@admin.register(ArbreSuivi)
+class ArbreSuiviAdmin(admin.ModelAdmin):
+    list_display = ('uuid_arbre_suivi', 'uuid_espece', 'statut_arbre', 'hauteur', 'circonference', 'date_suivi')
+    list_filter = ('statut_arbre', 'uuid_espece', 'date_suivi', 'c_com')
+    search_fields = ('uuid_arbre_suivi', 'remarque')
+
+@admin.register(BosquetBaseline)
+class BosquetBaselineAdmin(admin.GISModelAdmin):
+    list_display = ('uuid_bosquet_baseline', 'nom_proprietaire', 'c_com', 'surface_boisee_ha', 'date_baseline')
+    list_filter = ('c_com', 'proprietaire', 'conflit_foncier', 'date_baseline')
+    search_fields = ('nom_proprietaire', 'uuid_bosquet_baseline')
+    gis_widget_kwargs = {
+        'attrs': {
+            'default_zoom': 12,
+            'map_width': 800,
+            'map_height': 500,
+        }
+    }
+
+@admin.register(BosquetSuivi)
+class BosquetSuiviAdmin(admin.ModelAdmin):
+    list_display = ('uuid_bosquet_suivi', 'uuid_bosquet_gps', 'taux_survie', 'date_suivi', 'c_com')
+    list_filter = ('c_com', 'date_suivi')
+    search_fields = ('uuid_bosquet_suivi',)
+
+@admin.register(PgInfos)
+class PgInfosAdmin(admin.ModelAdmin):
+    list_display = ('nom_pg', 'code_pg', 'statut_pg', 'c_com', 'annee_inscription')
+    list_filter = ('statut_pg', 'annee_inscription', 'c_com')
+    search_fields = ('nom_pg', 'code_pg', 'representant_pg')
+
+# --- Enregistrement dynamique pour les autres modèles ---
 
 app_models = apps.get_app_config('core').get_models()
 
-# Exclure UserRole car il sera enregistré séparément
-from core.models_rbac import UserRole
-excluded_models = {UserRole}
+# Exclure les modèles déjà enregistrés
+excluded_models = {
+    UserRole, Membre, ArbreBaseline, ArbreSuivi,
+    BosquetBaseline, BosquetSuivi, PgInfos
+}
 
 for model in app_models:
     if model in excluded_models:
         continue
     
     try:
-        # On crée une classe qui hérite de GISModelAdmin
+        # On crée une classe qui hérite de GISModelAdmin pour le support spatial
         @admin.register(model)
         class DynamicGeoAdmin(admin.GISModelAdmin):
-            list_display = [field.name for field in model._meta.fields]
+            # Essayer d'afficher les 5 premiers champs pour éviter des listes trop larges
+            list_display = [field.name for field in model._meta.fields[:6]]
 
-            # Paramètres pour forcer l'affichage de la carte
+            # Paramètres pour l'affichage de la carte si champ geom présent
             gis_widget_kwargs = {
                 'attrs': {
                     'default_zoom': 11,

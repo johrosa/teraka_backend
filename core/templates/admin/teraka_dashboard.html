@@ -15,82 +15,160 @@
 
     <!-- En-tête du dashboard -->
     <div class="dashboard-header">
-        <h1>🪴 Tableau de bord Teraka Platform</h1>
-        <p class="dashboard-subtitle">Vue d'ensemble du système de suivi agroforestier</p>
+        <h1>🪴 Administration Teraka Platform</h1>
+        <p class="dashboard-subtitle">Vue d'ensemble et pilotage du système</p>
     </div>
 
-    <!-- Cartes de statistiques -->
-    <div class="stats-grid">
+    <!-- NAVIGATION RAPIDE -->
+    <div class="dashboard-nav">
+        <a href="#terrain-section" class="nav-item">📈 Suivi Terrain</a>
+        <a href="#employees-section" class="nav-item">👥 Gestion Employés</a>
+        <a href="#actions-section" class="nav-item">⚡ Actions</a>
+    </div>
 
-        <!-- Utilisateurs -->
-        <div class="stat-card users-card">
-            <div class="stat-icon">👥</div>
-            <div class="stat-content">
-                <h3>{{ total_users }}</h3>
-                <p>Utilisateurs totaux</p>
-                <div class="stat-details">
-                    <span class="active">{{ active_users }} actifs</span>
-                    <span class="staff">{{ staff_users }} staff</span>
-                    <span class="superuser">{{ superuser_count }} superuser</span>
+    <!-- SECTION SUIVI TERRAIN -->
+    <div id="terrain-section" class="section-container">
+        <div class="section-header">
+            <h2>📈 Dashboard Suivi Terrain</h2>
+            <span class="badge">Live Data</span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card terrain">
+                <div class="stat-icon">🌳</div>
+                <div class="stat-content">
+                    <h3>{{ bosquets_count }}</h3>
+                    <p>Bosquets Total</p>
+                    <div class="stat-details">
+                        <span>{{ bosquets_suivis }} suivis</span>
+                        <span class="highlight">{{ avg_survie }}% survie moy.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card terrain">
+                <div class="stat-icon">🌱</div>
+                <div class="stat-content">
+                    <h3>{{ arbres_count }}</h3>
+                    <p>Arbres Total</p>
+                    <div class="stat-details">
+                        <span>{{ arbres_suivis }} suivis</span>
+                        <span class="success">{{ arbres_vivants }} vivants</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card terrain">
+                <div class="stat-icon">🤝</div>
+                <div class="stat-content">
+                    <h3>{{ membres_count }}</h3>
+                    <p>Membres</p>
+                    <div class="stat-details">
+                        <span>{{ pepiniere_count }} pépiniéristes</span>
+                        <span>{{ leader_count }} leaders</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card terrain">
+                <div class="stat-icon">🏘️</div>
+                <div class="stat-content">
+                    <h3>{{ pg_count }}</h3>
+                    <p>Petits Groupes (PG)</p>
+                    <div class="stat-details">
+                        <span>Obj. 5 ans: {{ pg_objectif_total }}</span>
+                        <span>{{ communes_count }} communes</span>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Données géographiques -->
-        <div class="stat-card data-card">
-            <div class="stat-icon">🌍</div>
-            <div class="stat-content">
-                <h3>{{ communes_count }}</h3>
-                <p>Communes</p>
-                <div class="stat-details">
-                    <span>{{ bosquets_count }} bosquets</span>
-                    <span>{{ membres_count }} membres</span>
-                    <span>{{ arbres_count }} arbres</span>
+    <!-- SECTION GESTION DES EMPLOYÉS -->
+    <div id="employees-section" class="section-container">
+        <div class="section-header">
+            <h2>👥 Dashboard des Employés (Users)</h2>
+            <span class="badge blue">RBAC System</span>
+        </div>
+
+        <div class="employee-layout">
+            <!-- Stats Utilisateurs -->
+            <div class="employee-main">
+                <div class="stats-grid mini">
+                    <div class="stat-card user">
+                        <div class="stat-content">
+                            <h3>{{ total_users }}</h3>
+                            <p>Utilisateurs totaux</p>
+                            <div class="stat-details">
+                                <span class="active">{{ active_users }} actifs</span>
+                                <span class="staff">{{ staff_users }} staff</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card user">
+                        <div class="stat-content">
+                            <h3>{{ superuser_count }}</h3>
+                            <p>Administrateurs</p>
+                            <div class="stat-details">
+                                <span class="superuser">Accès complet</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Répartition RBAC -->
+                <div class="rbac-list">
+                    <h3>Répartition des rôles RBAC</h3>
+                    <div class="rbac-grid">
+                        {% for stat in rbac_stats %}
+                        <div class="rbac-role-card">
+                            <div class="role-name">{{ stat.role }}</div>
+                            <div class="role-count">{{ stat.count }}</div>
+                            <div class="role-desc">
+                                {% if stat.role == 'Expansion_L1' %}Collecte terrain{% endif %}
+                                {% if stat.role == 'Expansion_L2' %}Supervision Expansion{% endif %}
+                                {% if stat.role == 'MRV_L1' %}Consultation MRV{% endif %}
+                                {% if stat.role == 'MRV_L2' %}Analyse MRV{% endif %}
+                                {% if stat.role == 'MRV_L3' %}Validation MRV{% endif %}
+                                {% if stat.role == 'Admin_L1' %}Gestion Standard{% endif %}
+                                {% if stat.role == 'Admin_L2' %}Administration Totale{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal d'activité -->
+            <div class="employee-sidebar">
+                <h3>Dernières activités</h3>
+                <div class="activity-feed">
+                    {% for log in recent_logs %}
+                    <div class="activity-item">
+                        <span class="user">{{ log.user.username }}</span>
+                        <span class="action">
+                            {% if log.is_addition %}Ajout{% elif log.is_change %}Modif.{% else %}Suppr.{% endif %}
+                        </span>
+                        <span class="model">{{ log.content_type.model }}</span>
+                        <span class="time">{{ log.action_time|date:"d/m H:i" }}</span>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Section RBAC -->
-    <div class="rbac-section">
-        <h2>🔐 Répartition des rôles RBAC</h2>
-        <div class="rbac-grid">
-            {% for stat in rbac_stats %}
-            <div class="rbac-role-card">
-                <div class="role-name">{{ stat.role }}</div>
-                <div class="role-count">{{ stat.count }}</div>
-                <div class="role-description">
-                    {% if stat.role == 'Expansion_L1' %}Création seulement{% endif %}
-                    {% if stat.role == 'Expansion_L2' %}Lecture + Modification{% endif %}
-                    {% if stat.role == 'MRV_L1' %}Lecture seule{% endif %}
-                    {% if stat.role == 'MRV_L2' %}Lecture + Modification{% endif %}
-                    {% if stat.role == 'MRV_L3' %}Lecture + Modification + Validation{% endif %}
-                    {% if stat.role == 'Admin_L1' %}Lecture + Modification{% endif %}
-                    {% if stat.role == 'Admin_L2' %}Lecture + Modification + Suppression{% endif %}
-                </div>
-            </div>
-            {% endfor %}
+    <!-- ACTIONS RAPIDES -->
+    <div id="actions-section" class="section-container">
+        <div class="section-header">
+            <h2>⚡ Actions rapides</h2>
         </div>
-    </div>
-
-    <!-- Actions rapides -->
-    <div class="quick-actions">
-        <h2>⚡ Actions rapides</h2>
         <div class="actions-grid">
             <a href="{% url 'admin:core_userrole_changelist' %}" class="action-card">
                 <div class="action-icon">👤</div>
                 <div class="action-content">
                     <h4>Gérer les rôles</h4>
-                    <p>Assigner/modifier les rôles des utilisateurs</p>
-                </div>
-            </a>
-
-            <a href="{% url 'admin:core_rbacadmin_changelist' %}" class="action-card">
-                <div class="action-icon">🔒</div>
-                <div class="action-content">
-                    <h4>Importer RBAC</h4>
-                    <p>Appliquer la matrice de sécurité depuis CSV</p>
+                    <p>Assigner/modifier les rôles RBAC</p>
                 </div>
             </a>
 
@@ -98,7 +176,15 @@
                 <div class="action-icon">👥</div>
                 <div class="action-content">
                     <h4>Gérer utilisateurs</h4>
-                    <p>Créer/modifier les comptes utilisateur</p>
+                    <p>Comptes et accès Django</p>
+                </div>
+            </a>
+
+            <a href="{% url 'admin:core_membre_changelist' %}" class="action-card">
+                <div class="action-icon">👩‍🌾</div>
+                <div class="action-content">
+                    <h4>Membres</h4>
+                    <p>Gérer les bénéficiaires</p>
                 </div>
             </a>
 
@@ -106,168 +192,232 @@
                 <div class="action-icon">🌳</div>
                 <div class="action-content">
                     <h4>Données terrain</h4>
-                    <p>Consulter les données de suivi</p>
+                    <p>Bosquets et Arbres</p>
                 </div>
             </a>
-        </div>
-    </div>
-
-    <!-- Informations système -->
-    <div class="system-info">
-        <h2>ℹ️ Informations système</h2>
-        <div class="info-grid">
-            <div class="info-card">
-                <h4>API Status</h4>
-                <p>Django: ✅ Actif</p>
-                <p>PostgREST: 🔄 Vérifier</p>
-                <p>JWT: ✅ Configuré</p>
-            </div>
-
-            <div class="info-card">
-                <h4>Dernière activité</h4>
-                <p>Import RBAC: Aujourd'hui</p>
-                <p>Connexions: Actives</p>
-                <p>Base de données: PostgreSQL 17</p>
-            </div>
         </div>
     </div>
 
 </div>
 
 <style>
-.dashboard-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+/* Variables et Thème */
+:root {
+    --primary: #27ae60;
+    --secondary: #2c3e50;
+    --accent: #3498db;
+    --bg-light: #f4f7f6;
+    --white: #ffffff;
+    --text-main: #333;
+    --text-muted: #7f8c8d;
 }
 
+.dashboard-container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-light);
+}
+
+/* En-tête */
 .dashboard-header {
-    text-align: center;
-    margin-bottom: 30px;
+    text-align: left;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ddd;
 }
 
 .dashboard-header h1 {
-    color: #2c3e50;
-    font-size: 2.5em;
-    margin-bottom: 10px;
+    color: var(--secondary);
+    font-size: 2.2em;
+    margin: 0;
 }
 
 .dashboard-subtitle {
-    color: #7f8c8d;
+    color: var(--text-muted);
     font-size: 1.1em;
+    margin-top: 5px;
 }
 
-/* Grille de statistiques */
+/* Navigation */
+.dashboard-nav {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.nav-item {
+    padding: 10px 20px;
+    background: var(--white);
+    border-radius: 20px;
+    text-decoration: none;
+    color: var(--secondary);
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+}
+
+.nav-item:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Sections */
+.section-container {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    border-left: 5px solid var(--primary);
+    padding-left: 15px;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: var(--secondary);
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge.blue {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+/* Grilles */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    margin-bottom: 40px;
+}
+
+.stats-grid.mini {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .stat-card {
-    background: white;
+    padding: 20px;
     border-radius: 10px;
-    padding: 25px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     display: flex;
     align-items: center;
-    transition: transform 0.2s;
+    background: #fff;
+    border: 1px solid #eee;
 }
 
-.stat-card:hover {
-    transform: translateY(-2px);
-}
+.stat-card.terrain { border-top: 4px solid var(--primary); }
+.stat-card.user { border-top: 4px solid var(--accent); }
 
 .stat-icon {
-    font-size: 3em;
+    font-size: 2.5em;
     margin-right: 20px;
 }
 
 .stat-content h3 {
-    font-size: 2.5em;
+    font-size: 2em;
     margin: 0;
-    color: #2c3e50;
+    color: var(--secondary);
 }
 
 .stat-content p {
-    margin: 5px 0;
-    color: #7f8c8d;
+    margin: 2px 0 10px 0;
+    color: var(--text-muted);
     font-weight: 500;
 }
 
 .stat-details {
     display: flex;
-    gap: 15px;
-    margin-top: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .stat-details span {
-    font-size: 0.9em;
-    padding: 3px 8px;
-    border-radius: 15px;
-    color: white;
+    font-size: 0.85em;
+    padding: 2px 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    color: #555;
 }
 
-.stat-details .active { background: #27ae60; }
-.stat-details .staff { background: #3498db; }
-.stat-details .superuser { background: #e74c3c; }
+.stat-details .highlight { background: #fff3e0; color: #e65100; font-weight: bold; }
+.stat-details .success { background: #e8f5e9; color: #2e7d32; }
+.stat-details .active { background: #e3f2fd; color: #1565c0; }
+.stat-details .staff { background: #f3e5f5; color: #7b1fa2; }
+.stat-details .superuser { background: #ffebee; color: #c62828; }
 
-/* Section RBAC */
-.rbac-section {
-    margin-bottom: 40px;
+/* Layout Employés */
+.employee-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
 }
 
-.rbac-section h2 {
-    color: #2c3e50;
+.rbac-list h3, .employee-sidebar h3 {
+    font-size: 1.2em;
+    color: var(--secondary);
     margin-bottom: 20px;
 }
 
 .rbac-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 15px;
 }
 
 .rbac-role-card {
-    background: white;
+    background: #f9f9f9;
+    padding: 15px;
     border-radius: 8px;
-    padding: 20px;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-left: 4px solid #3498db;
+    border: 1px solid #eee;
 }
 
-.role-name {
-    font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 10px;
+.role-name { font-weight: bold; color: var(--secondary); font-size: 0.9em; }
+.role-count { font-size: 1.8em; color: var(--accent); margin: 5px 0; }
+.role-desc { font-size: 0.8em; color: var(--text-muted); }
+
+/* Activity Feed */
+.activity-feed {
+    background: #fdfdfd;
+    border-radius: 8px;
+    border: 1px solid #eee;
 }
 
-.role-count {
-    font-size: 2em;
-    color: #3498db;
-    margin-bottom: 5px;
-}
-
-.role-description {
+.activity-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
     font-size: 0.9em;
-    color: #7f8c8d;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Actions rapides */
-.quick-actions {
-    margin-bottom: 40px;
-}
+.activity-item:last-child { border-bottom: none; }
 
-.quick-actions h2 {
-    color: #2c3e50;
-    margin-bottom: 20px;
-}
+.activity-item .user { font-weight: bold; color: var(--accent); }
+.activity-item .action { color: #555; font-size: 0.85em; }
+.activity-item .model { color: var(--text-muted); font-style: italic; }
+.activity-item .time { align-self: flex-end; font-size: 0.75em; color: #999; }
 
+/* Actions */
 .actions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
 }
 
@@ -279,83 +429,24 @@
     color: inherit;
     display: flex;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
     transition: all 0.2s;
 }
 
 .action-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-color: var(--primary);
 }
 
-.action-icon {
-    font-size: 2.5em;
-    margin-right: 15px;
-}
-
-.action-content h4 {
-    margin: 0 0 5px 0;
-    color: #2c3e50;
-}
-
-.action-content p {
-    margin: 0;
-    color: #7f8c8d;
-    font-size: 0.9em;
-}
-
-/* Informations système */
-.system-info {
-    margin-bottom: 40px;
-}
-
-.system-info h2 {
-    color: #2c3e50;
-    margin-bottom: 20px;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.info-card {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.info-card h4 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-.info-card p {
-    margin: 5px 0;
-    color: #555;
-}
+.action-icon { font-size: 2em; margin-right: 15px; }
+.action-content h4 { margin: 0; color: var(--secondary); }
+.action-content p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.85em; }
 
 /* Responsive */
-@media (max-width: 768px) {
-    .dashboard-container {
-        padding: 10px;
-    }
-
-    .stats-grid, .actions-grid, .rbac-grid, .info-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .stat-card, .action-card {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .stat-icon, .action-icon {
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
+@media (max-width: 900px) {
+    .employee-layout { grid-template-columns: 1fr; }
+    .dashboard-nav { overflow-x: auto; padding-bottom: 10px; }
 }
 </style>
 {% endblock %}
