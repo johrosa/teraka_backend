@@ -27,9 +27,24 @@ for model in app_models:
         pass
 
 # Enregistrer les modèles d'auth
+from django.contrib.auth.admin import GroupAdmin
 from django.contrib.auth.models import User, Group
+
+class UserGroupInline(admin.TabularInline):
+    model = User.groups.through
+    extra = 1
+    verbose_name = "Utilisateur"
+    verbose_name_plural = "Utilisateurs"
+
+class CustomGroupAdmin(GroupAdmin):
+    inlines = [UserGroupInline]
+
 teraka_admin.register(User)
-teraka_admin.register(Group)
+try:
+    teraka_admin.unregister(Group)
+except admin.sites.NotRegistered:
+    pass
+teraka_admin.register(Group, CustomGroupAdmin)
 
 # Enregistrer les autres apps si nécessaire
 # teraka_admin.register(SomeOtherModel)

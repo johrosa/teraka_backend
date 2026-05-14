@@ -1,93 +1,77 @@
-# 🏠 Home Page Documentation
+# 🌳 TERAKA Platform - Page d'Accueil Plateforme
 
-## Vue d'ensemble
+## 📋 Vue d'Ensemble
 
-La page d'accueil de Teraka Platform est une page de destination moderne et responsive qui affiche:
+La page d'accueil TERAKA a été **complètement redesignée** pour présenter cette plateforme comme un outil de gestion des données du programme TERAKA, distinct du site officiel du projet. Elle affiche:
 
-- ✅ Statistiques globales de la plateforme en temps réel
-- ✅ Informations sur les communes, bosquets, arbres, membres
-- ✅ Couverture des données (% de suivi vs baseline)
+- ✅ Statistiques globales en temps réel
+- ✅ Mission, Vision et Approche TERAKA
+- ✅ 6 Objectifs de Développement Durable (ODD) de l'ONU
+- ✅ Impact du programme de reboisement
+- ✅ Informations sur les agriculteurs et groupes producteurs
+- ✅ Plateforme de gestion des données
 - ✅ Navigation vers les zones principales
-- ✅ Informations sur l'utilisateur connecté
 
 ---
 
-## 🎯 Fonctionnalités
+## ✨ Changements Clés (Version 2.0)
 
-### 1. **Navigation Header**
-- Logo Teraka avec lien retour home
-- Liens vers les sections principales
-- Affichage de l'état de connexion
-- Accès au panel admin (si connecté comme admin)
+### 🎨 Branding Teraka Authentique
+- **Couleurs**: Vert forêt (#1b5e20), Or (#ffc107), Bleu (#1976d2)
+- **Logo**: 🌳 TERAKA au lieu de générique
+- **Tonalité**: Alignée avec mission officielle de reboisement communautaire
 
-### 2. **Hero Section**
-- Présentation de la plateforme
-- Slogan et description
-- Boutons d'action principaux
+### 📋 Contenu Réorganisé
+1. **Hero**: "Plateforme de Gestion des Données TERAKA"
+2. **Mission & Vision**: 3 cartes explicatives
+3. **ODD**: 6 Objectifs de Développement Durable visés
+4. **Statistiques**: Communes, Bosquets, Arbres, Membres, PG
+5. **Impact**: 6 résultats clés du programme
+6. **Plateforme**: Fonctionnalités techniques
+7. **Ressources**: Accès admin, APIs, support
+8. **Footer**: Contacts réels et liens réseaux sociaux
 
-### 3. **Statistiques Globales**
+---
+
+## 🎯 Sections Détaillées
+
+### Mission & Vision
+Présente les 3 piliers du programme:
+- **Mission**: Permettre aux communautés rurales de bénéfices durables de leurs plantations
+- **Vision**: Modèle intégrant gestion des forêts et développement économique local
+- **Approche**: Expertise scientifique + connaissances locales
+
+### Objectifs de Développement Durable (ODD)
+TERAKA contribue à 6 ODD des Nations Unies:
+- **ODD 3**: Bonne Santé et bien-être
+- **ODD 5**: Égalité des genres
+- **ODD 8**: Travail décent
+- **ODD 12**: Consommation responsable
+- **ODD 13**: Action pour le climat
+- **ODD 15**: Vie terrestre
+
+### Statistiques Globales
 Affiche en temps réel:
+- **Communes**: Nombre de communes couvertes
+- **Bosquets**: Total, en suivi, % couverture
+- **Arbres**: Total, en suivi, % couverture
+- **Agriculteurs**: Total participants, actifs, % activité
+- **Groupes Producteurs**: Total, groupes actifs
 
-```
-🗺️ Communes
-   Total: 15
-
-🌳 Bosquets  
-   Baseline: 245
-   Suivi: 189
-   Couverture: 77.1%
-
-🌲 Arbres
-   Baseline: 5890
-   Suivi: 3421
-   Couverture: 58.1%
-
-👥 Membres
-   Total: 1203
-   Suivi: 987
-   Couverture: 82.0%
-
-🤝 Producteurs Groupés
-   Total: 489
-   Suivi: 312
-   Couverture: 63.8%
-```
-
-### 4. **À propos de Teraka**
-- Description générale
-- Caractéristiques clés
-- Fonctionnalités principales
-
-### 5. **Fonctionnalités Principales**
-6 cartes d'action:
-
-1. **Gestion des Rôles (RBAC)**
-   - 7 niveaux de permission
-   - Lien vers la gestion
-
-2. **Statistiques en Temps Réel**
-   - APIs statistiques
-   - Lien vers l'endpoint
-
-3. **Données Géospatiales**
-   - Suivi des parcelles
-   - PostGIS intégré
-
-4. **Export & Rapports**
-   - Export JSON/CSV
-   - Rapports détaillés
-
-5. **Interface d'Administration**
-   - Gestion complète
-   - Lien vers l'admin
-
-6. **Documentation Complète**
-   - Guides et exemples
-   - API documentation
+### Impact du Programme
+6 résultats clés showcased:
+1. **Reforestation** - Arbres plantés, écosystèmes restaurés
+2. **Revenus Durables** - Sources de revenus pour agriculteurs
+3. **Formation & Développement** - Compétences et leadership
+4. **Atténuation Climatique** - Réduction émissions GES
+5. **Développement Social** - Conditions de vie, cohésion
+6. **Autonomisation** - Gestion durable ressources naturelles
 
 ---
 
-## 📱 Responsive Design
+## 🎨 Design & Styling
+
+### Palette Couleurs Teraka
 
 La page s'adapte automatiquement:
 

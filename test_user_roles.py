@@ -52,7 +52,7 @@ def test_jwt_token_generation():
     for user_role in user_roles:
         user = user_role.user
         username = user.username
-        expected_role = user_role.role
+        expected_role = user_role.role.code if user_role.role else None
         
         print(f"Testing user: {Colors.YELLOW}{username}{Colors.END}")
         
@@ -144,7 +144,7 @@ def test_postgrest_api():
     for user_role in user_roles[:3]:  # Tester les 3 premiers utilisateurs
         user = user_role.user
         username = user.username
-        role = user_role.role
+        role = user_role.role.code if user_role.role else None
         
         print(f"Testing user: {Colors.YELLOW}{username}{Colors.END} (role: {role})")
         

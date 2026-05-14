@@ -162,6 +162,8 @@ class Command(BaseCommand):
         model_fields = {f.name: f for f in model._meta.fields if not f.primary_key}
         geom_field = self.get_geometry_field(model)
         source_fields = [str(f) for f in layer.fields]
+        source_lookup = {str(f).lower(): str(f) for f in layer.fields}
+        model_key = model._meta.model_name.lower()
 
         imported_count = 0
         error_count = 0
@@ -202,16 +204,29 @@ class Command(BaseCommand):
                                 continue
                             continue
 
-                        # Fuzzy matching pour trouver le champ source correspondant
-                        matches = difflib.get_close_matches(field_name, source_fields, n=1, cutoff=0.6)
-                        if not matches:
+                        # --- CORRESPONDANCE MANUELLE / LOGGING ---
+                        manual_key = (model_key, field_name.lower())
+                        source_field_name = self.field_mappings.get(manual_key)
+                        if source_field_name:
+                            if source_field_name.lower() not in source_lookup:
+                                logging.warning(
+                                    f"Correspondance manuelle trouvée pour {model_key}.{field_name} mais le champ source '{source_field_name}' est introuvable dans la couche"
+                                )
+                                source_field_name = None
+                            else:
+                                source_field_name = source_lookup[source_field_name.lower()]
+
+                        if not source_field_name:
+                            matches = difflib.get_close_matches(field_name, source_fields, n=1, cutoff=0.6)
+                            if matches:
+                                source_field_name = matches[0]
+
+                        if not source_field_name:
                             continue
 
-                        source_field_name = matches[0]
-
-                        # --- LOGGING DU MATCHING ---
                         logging.info(
-                            f"Mapping pour {table_name}: '{field_name}' (DB) <-> '{source_field_name}' (Source)")
+                            f"Mapping pour {table_name}: '{field_name}' (DB) <-> '{source_field_name}' (Source)"
+                        )
 
                         try:
                             value = self.get_feature_value(feature, source_field_name)
@@ -262,6 +277,10 @@ class Command(BaseCommand):
         if not qgis_sources:
             self.stdout.write(self.style.ERROR("Aucune source de données valide trouvée dans le projet."))
             return
+
+        # Charger les correspondances manuelles de champs
+        from core.models_rbac import FieldMapping
+        self.field_mappings = FieldMapping.load_mappings()
 
         # Récupération des modèles Django
         app_models = list(apps.get_app_config('core').get_models())
@@ -365,7 +384,7 @@ class Command(BaseCommand):
                     qgis_layer_name = processed_pairs[pair_type]
                 else:
                     # C'est une table GPS, chercher la couche QGIS
-                    matches = difflib.get_close_matches(qgis_layer_hint, layer_names, n=1, cutoff=0.5)
+                    matches = difflib.get_close_matches(qgis_layer_hint, layer_names, n=1, cutoff=0.7)
                     if not matches:
                         msg = f"Aucune couche QGIS trouvée pour {table_name} (cherché: {qgis_layer_hint})"
                         self.stdout.write(self.style.WARNING(msg))
@@ -376,7 +395,7 @@ class Command(BaseCommand):
                     processed_pairs[pair_type] = qgis_layer_name
             else:
                 # Table normale, fuzzy matching classique
-                matches = difflib.get_close_matches(table_name, layer_names, n=1, cutoff=0.5)
+                matches = difflib.get_close_matches(table_name, layer_names, n=1, cutoff=0.7)
                 if not matches:
                     msg = f"Aucune couche QGIS trouvée pour la table {table_name}"
                     self.stdout.write(self.style.WARNING(msg))

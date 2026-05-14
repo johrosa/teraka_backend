@@ -9,8 +9,8 @@ class PostgrestTokenSerializer(TokenObtainPairSerializer):
         # On récupère le rôle PostgreSQL associé à l'utilisateur
         try:
             from core.models_rbac import UserRole
-            user_role = UserRole.objects.get(user=user)
-            role = user_role.role
+            user_role = UserRole.objects.select_related('role').get(user=user)
+            role = user_role.role.code
         except UserRole.DoesNotExist:
             # Si l'utilisateur n'a pas de rôle assigné, utiliser un rôle par défaut
             # 'postgres' = superuser (utile pour les admins)

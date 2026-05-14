@@ -3,9 +3,9 @@ from django.apps import apps
 
 app_models = apps.get_app_config('core').get_models()
 
-# Exclure UserRole car il sera enregistré séparément
-from core.models_rbac import UserRole
-excluded_models = {UserRole}
+# Exclure les modèles enregistrés manuellement
+from core.models_rbac import UserRole, FieldMapping
+excluded_models = {UserRole, FieldMapping}
 
 for model in app_models:
     if model in excluded_models:
@@ -29,6 +29,24 @@ for model in app_models:
     except (admin.sites.AlreadyRegistered, TypeError):
         pass
 
+
+@admin.register(FieldMapping)
+class FieldMappingAdmin(admin.ModelAdmin):
+    list_display = ['model_name', 'field_name', 'source_field_name', 'enabled', 'updated_at']
+    list_filter = ['model_name', 'enabled']
+    search_fields = ['model_name', 'field_name', 'source_field_name', 'comment']
+    ordering = ['model_name', 'field_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        (None, {
+            'fields': ('model_name', 'field_name', 'source_field_name', 'enabled', 'comment')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
 
 
 import pandas as pd
@@ -280,18 +298,11 @@ class UserRoleAdmin(admin.ModelAdmin):
 
     def get_role_description(self, obj):
         """Afficher la description du rôle"""
-        descriptions = {
-            'Expansion_L1': 'Création seulement',
-            'Expansion_L2': 'Lecture + Modification',
-            'MRV_L1': 'Lecture seule',
-            'MRV_L2': 'Lecture + Modification',
-            'MRV_L3': 'Lecture + Modification + Validation',
-            'Admin_L1': 'Lecture + Modification',
-            'Admin_L2': 'Lecture + Modification + Suppression',
-        }
-        return descriptions.get(obj.role, obj.role)
+        if obj.role:
+            return obj.role.description
+        return None
     get_role_description.short_description = 'Description du rôle'
-    get_role_description.admin_order_field = 'role'
+    get_role_description.admin_order_field = 'role__code'
 
     def is_active_user(self, obj):
         """Indiquer si l'utilisateur est actif"""

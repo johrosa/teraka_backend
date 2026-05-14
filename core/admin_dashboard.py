@@ -3,7 +3,7 @@ Dashboard personnalisé pour l'admin Teraka
 """
 from django.contrib import admin
 from django.db import connection
-from django.db.models import Count
+from django.db.models import Count, F
 from django.shortcuts import render
 from django.urls import path
 from django.utils.decorators import method_decorator
@@ -38,7 +38,7 @@ class TerakaAdminSite(admin.AdminSite):
         superuser_count = User.objects.filter(is_superuser=True).count()
 
         # Statistiques RBAC
-        rbac_stats = UserRole.objects.values('role').annotate(count=Count('role')).order_by('role')
+        rbac_stats = UserRole.objects.values(role=F('role__code')).annotate(count=Count('role')).order_by('role')
 
         # Statistiques base de données (tables principales)
         with connection.cursor() as cursor:

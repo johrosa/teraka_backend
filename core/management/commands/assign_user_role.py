@@ -3,7 +3,7 @@ Management command pour assigner des rôles PostgreSQL aux utilisateurs Django
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from core.models_rbac import UserRole
+from core.models_rbac import Role, UserRole
 
 
 class Command(BaseCommand):
@@ -18,7 +18,6 @@ class Command(BaseCommand):
         parser.add_argument(
             '--role',
             type=str,
-            choices=[role[0] for role in UserRole.POSTGRES_ROLES],
             help='Rôle PostgreSQL à assigner',
         )
         parser.add_argument(
@@ -37,8 +36,11 @@ class Command(BaseCommand):
         if options['list_roles']:
             self.stdout.write(self.style.SUCCESS('Rôles PostgreSQL disponibles:'))
             self.stdout.write('')
-            for role_code, role_desc in UserRole.POSTGRES_ROLES:
-                self.stdout.write(f"  • {role_code:<20} - {role_desc}")
+            if not Role.objects.exists():
+                Role.ensure_default_roles()
+
+            for role in Role.objects.all():
+                self.stdout.write(f"  • {role.code:<20} - {role.description}")
             self.stdout.write('')
             return
 
@@ -84,28 +86,33 @@ class Command(BaseCommand):
                 user = User.objects.get(username=options['username'])
             except User.DoesNotExist:
                 raise CommandError(f"L'utilisateur '{options['username']}' n'existe pas.")
-            
-            role = options['role']
-            
-            # Vérifier si l'utilisateur a déjà un rôle
+
+            if not Role.objects.exists():
+                Role.ensure_default_roles()
+
+            try:
+                role_obj = Role.objects.get(code=options['role'])
+            except Role.DoesNotExist:
+                raise CommandError(f"Le rôle '{options['role']}' n'existe pas. Utilisez --list-roles pour voir les rôles disponibles.")
+
             try:
                 user_role = UserRole.objects.get(user=user)
-                old_role = user_role.role
-                user_role.role = role
+                old_role = user_role.role.code
+                user_role.role = role_obj
                 user_role.save()
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Le rôle de '{user.username}' a été mis à jour: {old_role} → {role}"
+                        f"Le rôle de '{user.username}' a été mis à jour: {old_role} → {role_obj.code}"
                     )
                 )
             except UserRole.DoesNotExist:
-                user_role = UserRole.objects.create(user=user, role=role)
+                user_role = UserRole.objects.create(user=user, role=role_obj)
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"L'utilisateur '{user.username}' a été associé au rôle '{role}'"
+                        f"L'utilisateur '{user.username}' a été associé au rôle '{role_obj.code}'"
                     )
                 )
-            
+
             return
 
         # Si aucune option n'est fournie
