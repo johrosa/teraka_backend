@@ -30,45 +30,68 @@ class TerakaAdminSite(admin.AdminSite):
     @method_decorator(staff_member_required)
     def dashboard_view(self, request):
         """Vue du dashboard personnalisé"""
+        from django.db.models import Avg, Sum
+        from core.models import (
+            Communes, BosquetBaseline, BosquetSuivi,
+            ArbreBaseline, ArbreSuivi, Membre, PgInfos
+        )
 
-        # Statistiques utilisateurs et rôles
+        # --- Dashboard Employés (Users & RBAC) ---
         total_users = User.objects.count()
         active_users = User.objects.filter(is_active=True).count()
         staff_users = User.objects.filter(is_staff=True).count()
         superuser_count = User.objects.filter(is_superuser=True).count()
-
-        # Statistiques RBAC
         rbac_stats = UserRole.objects.values('role').annotate(count=Count('role')).order_by('role')
 
-        # Statistiques base de données (tables principales)
-        with connection.cursor() as cursor:
-            # Communes
-            cursor.execute("SELECT COUNT(*) FROM communes")
-            communes_count = cursor.fetchone()[0]
+        # --- Dashboard Terrain (Suivi Agroforestier) ---
+        communes_count = Communes.objects.count()
+        membres_count = Membre.objects.count()
+        pepiniere_count = Membre.objects.filter(pepinieriste=True).count()
+        leader_count = Membre.objects.filter(leader=True).count()
 
-            # Bosquets
-            cursor.execute("SELECT COUNT(*) FROM bosquet_suivi")
-            bosquets_count = cursor.fetchone()[0]
+        bosquets_count = BosquetBaseline.objects.count()
+        bosquets_suivis = BosquetSuivi.objects.count()
+        avg_survie = BosquetSuivi.objects.aggregate(Avg('taux_survie'))['taux_survie__avg'] or 0
 
-            # Membres
-            cursor.execute("SELECT COUNT(*) FROM membre")
-            membres_count = cursor.fetchone()[0]
+        arbres_count = ArbreBaseline.objects.count()
+        arbres_suivis = ArbreSuivi.objects.count()
+        arbres_vivants = ArbreSuivi.objects.filter(statut_arbre='Vivant').count()
 
-            # Arbres
-            cursor.execute("SELECT COUNT(*) FROM arbre_suivi")
-            arbres_count = cursor.fetchone()[0]
+        pg_count = PgInfos.objects.count()
+        pg_objectif_total = PgInfos.objects.aggregate(Sum('objectif_plantation_5_ans'))['objectif_plantation_5_ans__sum'] or 0
+
+        # --- Activité Récente ---
+        from django.contrib.admin.models import LogEntry
+        from django.utils import timezone
+        from datetime import timedelta
+
+        last_7_days = timezone.now() - timedelta(days=7)
+        recent_logs = LogEntry.objects.filter(action_time__gte=last_7_days).order_by('-action_time')[:10]
 
         context = {
             'title': 'Tableau de bord Teraka',
+
+            # Employés
             'total_users': total_users,
             'active_users': active_users,
             'staff_users': staff_users,
             'superuser_count': superuser_count,
             'rbac_stats': rbac_stats,
+            'recent_logs': recent_logs,
+
+            # Terrain
             'communes_count': communes_count,
-            'bosquets_count': bosquets_count,
             'membres_count': membres_count,
+            'pepiniere_count': pepiniere_count,
+            'leader_count': leader_count,
+            'bosquets_count': bosquets_count,
+            'bosquets_suivis': bosquets_suivis,
+            'avg_survie': round(avg_survie, 2),
             'arbres_count': arbres_count,
+            'arbres_suivis': arbres_suivis,
+            'arbres_vivants': arbres_vivants,
+            'pg_count': pg_count,
+            'pg_objectif_total': pg_objectif_total,
         }
 
         return render(request, 'admin/teraka_dashboard.html', context)
