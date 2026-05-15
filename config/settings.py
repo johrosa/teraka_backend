@@ -135,9 +135,11 @@ SIMPLE_JWT = {
 }
 
 # Session timeout configuration (2 minutes)
+# SESSION_SAVE_EVERY_REQUEST = True ensures the session (and timeout) is
+# extended on every interaction with the backend (sliding session).
 SESSION_COOKIE_AGE = 120  # 2 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', # Indispensable pour l'API
