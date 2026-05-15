@@ -124,11 +124,20 @@ REST_FRAMEWORK = {
     )
 }
 
+from datetime import timedelta
+
 SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
     'ALGORITHM': 'HS256',
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=2),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
 }
+
+# Session timeout configuration (2 minutes)
+SESSION_COOKIE_AGE = 120  # 2 minutes in seconds
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', # Indispensable pour l'API
