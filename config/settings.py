@@ -129,15 +129,16 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
     'ALGORITHM': 'HS256',
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=2),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
 }
 
-# Session timeout configuration (2 minutes)
+# Session timeout configuration
 # SESSION_SAVE_EVERY_REQUEST = True ensures the session (and timeout) is
 # extended on every interaction with the backend (sliding session).
-SESSION_COOKIE_AGE = 120  # 2 minutes in seconds
+# Increased to 60 minutes for better compatibility with QGIS and long tasks.
+SESSION_COOKIE_AGE = 3600  # 60 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
