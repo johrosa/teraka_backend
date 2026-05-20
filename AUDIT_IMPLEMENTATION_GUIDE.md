@@ -1,40 +1,31 @@
-# Guide d'implémentation de l'audit log Teraka
+# Guide d'implémentation de l'audit log et corrections Teraka
 
-Ce document explique comment capturer les utilisateurs Django dans les triggers PostgreSQL pour l'audit complet du système.
+Ce document explique comment déployer le système d'audit complet et appliquer les corrections de schéma nécessaires.
 
-## 1. Fonctionnement de la capture utilisateur
-L'architecture Teraka utilise Django pour l'authentification et PostgREST pour l'API. PostgREST expose automatiquement les informations du JWT dans la session PostgreSQL.
+## 1. Correction du bug UserRole
+Si vous rencontrez l'erreur `column core_userrole.role does not exist`, exécutez le script suivant :
+`psql -f fix_userrole_schema.sql`
 
-La capture du `username` Django s'effectue via :
+## 2. Système d'audit (final_audit_solution.sql)
+Le système d'audit capture l'identité des utilisateurs Django via les claims JWT de PostgREST.
+
+### Fonctionnement
+La capture s'effectue via :
 `current_setting('request.jwt.claims', true)::json->>'username'`
 
-Le système prévoit un fallback sur `current_user` pour les actions effectuées directement en SQL ou via l'interface d'administration standard de Django.
-
-## 2. Contenu de la solution (final_audit_solution.sql)
-Le script SQL fournit une solution clé en main :
-- **Table `audit_log`** : Stockage sécurisé des opérations avec une chaîne de hachage SHA-256 pour garantir l'immutabilité.
-- **Trigger `audit_trigger`** : Fonction générique capable de gérer n'importe quelle table en spécifiant sa clé primaire.
-- **Vues d'analyse** :
-    - `audit_readable_view` : Historique lisible des actions.
-    - `audit_diff_view` : Focus sur les changements précis de valeurs lors des UPDATE.
-- **Vérification d'intégrité** :
-    - `verify_audit_chain()` : Fonction SQL pour valider que les logs n'ont pas été altérés.
-
-## 3. Déploiement sur de nouvelles tables
-Pour auditer une table, créez le trigger en passant le nom de la colonne PK en argument :
-
+### Déploiement
+1. Exécutez `psql -f final_audit_solution.sql`.
+2. Appliquez le trigger aux tables souhaitées :
 ```sql
--- Exemple pour la table 'membre' (PK: uuid_membre)
-CREATE TRIGGER audit_membre
-AFTER INSERT OR UPDATE OR DELETE ON membre
-FOR EACH ROW EXECUTE FUNCTION audit_trigger('uuid_membre');
+CREATE TRIGGER audit_ma_table
+AFTER INSERT OR UPDATE OR DELETE ON ma_table
+FOR EACH ROW EXECUTE FUNCTION audit_trigger('nom_colonne_pk');
 ```
 
-## 4. Consultation des logs
-```sql
--- Voir les dernières actions
-SELECT * FROM audit_readable_view ORDER BY date_action DESC;
+## 3. Import QGIS amélioré
+La commande `import_qgis_data` supporte désormais un mode interactif pour résoudre les problèmes de mapping (notamment pour Mergin).
 
--- Vérifier si les logs sont valides (non corrompus)
-SELECT * FROM verify_audit_chain() WHERE is_valid = false;
-```
+**Usage :**
+`python manage.py import_qgis_data mon_projet.qgz --interactive`
+
+Cela affichera un dialogue de mapping manuel si les couches ou les champs ne sont pas automatiquement reconnus.
