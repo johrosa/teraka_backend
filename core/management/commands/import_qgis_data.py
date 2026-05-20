@@ -36,9 +36,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('qgis_project', type=str, help='Chemin vers le fichier projet QGIS (.qgs ou .qgz)')
         parser.add_argument('--clear', action='store_true', help='Vider les tables existantes avant import')
+        parser.add_argument('--interactive', action='store_true', help='Activer le dialogue de mapping manuel')
 
     def parse_qgis_project(self, project_path):
-        """Extrait les chemins des sources de données depuis le fichier projet QGIS (.qgs ou .qgz)."""
+        """Extrait les chemins des sources de données depuis le fichier projet QGIS (.qgs/.qgz)."""
         sources = {}
         try:
             content = None
@@ -146,7 +147,26 @@ class Command(BaseCommand):
             return geom.ExportToWkt()
         return str(geom)
 
-    def import_features_direct(self, model, layer, clear_table=False):
+    def ask_for_mapping(self, item_name, choices, item_type="couche"):
+        """Dialogue interactif pour le mapping manuel."""
+        self.stdout.write(f"\n❓ Dialogue de mapping : Choisissez la {item_type} pour '{item_name}'")
+        for i, choice in enumerate(choices):
+            self.stdout.write(f"  [{i}] {choice}")
+        self.stdout.write(f"  [s] Passer (Skip)")
+
+        while True:
+            val = input(f"Votre choix (0-{len(choices)-1}/s) : ").strip().lower()
+            if val == 's':
+                return None
+            try:
+                idx = int(val)
+                if 0 <= idx < len(choices):
+                    return choices[idx]
+            except ValueError:
+                pass
+            self.stdout.write(self.style.WARNING("Choix invalide."))
+
+    def import_features_direct(self, model, layer, clear_table=False, interactive=False):
         """
         Importe les features via GDAL + Django ORM avec gestion des MultiPolygon
         et logging détaillé des mappings de champs.
@@ -165,6 +185,9 @@ class Command(BaseCommand):
 
         imported_count = 0
         error_count = 0
+
+        # Mapping de champs (mis en cache pour la table)
+        field_mapping = {}
 
         for feature in layer:
             try:
@@ -202,12 +225,24 @@ class Command(BaseCommand):
                                 continue
                             continue
 
-                        # Fuzzy matching pour trouver le champ source correspondant
-                        matches = difflib.get_close_matches(field_name, source_fields, n=1, cutoff=0.6)
-                        if not matches:
-                            continue
+                        # Gestion du mapping de champ
+                        source_field_name = field_mapping.get(field_name)
 
-                        source_field_name = matches[0]
+                        if source_field_name is None:
+                            # Fuzzy matching
+                            matches = difflib.get_close_matches(field_name, source_fields, n=1, cutoff=0.6)
+                            if matches:
+                                source_field_name = matches[0]
+                                field_mapping[field_name] = source_field_name
+                            elif interactive:
+                                source_field_name = self.ask_for_mapping(field_name, source_fields, "champ")
+                                field_mapping[field_name] = source_field_name if source_field_name else False
+                            else:
+                                field_mapping[field_name] = False
+                                continue
+
+                        if not source_field_name:
+                            continue
 
                         # --- LOGGING DU MATCHING ---
                         logging.info(
@@ -249,6 +284,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         project_path = options['qgis_project']
         clear_tables = options['clear']
+        interactive = options['interactive']
 
         # Validation du chemin du projet
         if not os.path.exists(project_path):
@@ -259,8 +295,9 @@ class Command(BaseCommand):
         self.stdout.write("Analyse du projet QGIS...")
         qgis_sources = self.parse_qgis_project(project_path)
 
-        if not qgis_sources:
-            self.stdout.write(self.style.ERROR("Aucune source de données valide trouvée dans le projet."))
+        if not qgis_sources and not interactive:
+            self.stdout.write(self.style.ERROR("Aucune donnée importée depuis Mergin n'a été trouvée pour ce projet."))
+            self.stdout.write(self.style.NOTICE("💡 Utilisez --interactive pour mapper les couches manuellement."))
             return
 
         # Récupération des modèles Django
@@ -353,6 +390,7 @@ class Command(BaseCommand):
             # Vérifier si c'est une paire GPS/Data
             is_pair, pair_type, qgis_layer_hint, is_gps = self.is_gps_data_pair(model_name)
 
+            qgis_layer_name = None
             if is_pair:
                 # Si c'est une table Data (pas GPS), vérifier que le GPS a été importé
                 if not is_gps:
@@ -366,23 +404,27 @@ class Command(BaseCommand):
                 else:
                     # C'est une table GPS, chercher la couche QGIS
                     matches = difflib.get_close_matches(qgis_layer_hint, layer_names, n=1, cutoff=0.5)
-                    if not matches:
-                        msg = f"Aucune couche QGIS trouvée pour {table_name} (cherché: {qgis_layer_hint})"
-                        self.stdout.write(self.style.WARNING(msg))
-                        logging.warning(msg)
-                        continue
-                    qgis_layer_name = matches[0]
-                    # Enregistrer pour les tables Data associées
-                    processed_pairs[pair_type] = qgis_layer_name
+                    if matches:
+                        qgis_layer_name = matches[0]
+                    elif interactive:
+                        qgis_layer_name = self.ask_for_mapping(table_name, layer_names)
+
+                    if qgis_layer_name:
+                        # Enregistrer pour les tables Data associées
+                        processed_pairs[pair_type] = qgis_layer_name
             else:
                 # Table normale, fuzzy matching classique
                 matches = difflib.get_close_matches(table_name, layer_names, n=1, cutoff=0.5)
-                if not matches:
-                    msg = f"Aucune couche QGIS trouvée pour la table {table_name}"
-                    self.stdout.write(self.style.WARNING(msg))
-                    logging.warning(msg)
-                    continue
-                qgis_layer_name = matches[0]
+                if matches:
+                    qgis_layer_name = matches[0]
+                elif interactive:
+                    qgis_layer_name = self.ask_for_mapping(table_name, layer_names)
+
+            if not qgis_layer_name:
+                msg = f"Aucune couche QGIS trouvée pour la table {table_name}"
+                self.stdout.write(self.style.WARNING(msg))
+                logging.warning(msg)
+                continue
 
             file_path = qgis_sources[qgis_layer_name]
 
@@ -402,7 +444,7 @@ class Command(BaseCommand):
                 layer = self.get_layer_from_source(ds)
 
                 # Importation directe via GDAL + ORM
-                imported, errors = self.import_features_direct(model, layer, clear_tables)
+                imported, errors = self.import_features_direct(model, layer, clear_tables, interactive)
 
                 self.stdout.write(self.style.SUCCESS(
                     f"Importation réussie pour {table_name}: {imported} enregistrements, {errors} erreurs"
