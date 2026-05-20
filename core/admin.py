@@ -1,8 +1,9 @@
 from django.contrib.gis import admin
+from django.contrib.admin.sites import AlreadyRegistered
 from django.apps import apps
 from core.models import (
     Membre, ArbreBaseline, ArbreSuivi, BosquetBaseline, BosquetSuivi,
-    PgInfos, Communes, EspecesArbres, Users
+    PgInfos, Communes, EspecesArbres, Users, AuditLog
 )
 from core.models_rbac import UserRole
 
@@ -56,6 +57,28 @@ class PgInfosAdmin(admin.ModelAdmin):
     list_filter = ('statut_pg', 'annee_inscription', 'c_com')
     search_fields = ('nom_pg', 'code_pg', 'representant_pg')
 
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ('id', 'table_name', 'operation', 'user_id', 'action_time', 'record_id')
+    list_filter = ('operation', 'table_name', 'action_time')
+    search_fields = ('table_name', 'record_id', 'user_id', 'operation')
+    readonly_fields = ('id', 'table_name', 'operation', 'record_id', 'user_id', 'action_time', 
+                       'old_data', 'new_data', 'previous_hash', 'current_hash')
+    list_per_page = 50
+    date_hierarchy = 'action_time'
+    
+    def has_add_permission(self, request):
+        """Les logs ne peuvent pas être ajoutés manuellement"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Seuls les superusers peuvent supprimer les logs"""
+        return request.user.is_superuser
+    
+    def has_change_permission(self, request, obj=None):
+        """Les logs sont read-only"""
+        return False
+
 # --- Enregistrement dynamique pour les autres modèles ---
 
 app_models = apps.get_app_config('core').get_models()
@@ -86,7 +109,7 @@ for model in app_models:
                     'map_height': 400,
                 }
             }
-    except (admin.sites.AlreadyRegistered, TypeError):
+    except (AlreadyRegistered, TypeError):
         pass
 
 

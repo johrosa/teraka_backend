@@ -1,7 +1,6 @@
 # ============================================================================
 # HOME PAGE - Page d'accueil de la plateforme
 # ============================================================================
-
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
@@ -18,12 +17,12 @@ def home_page_view(request):
             ArbreBaseline, ArbreSuivi, Membre, MembreSuivi,
             PgInfos, PgSuivi
         )
-        
+
         context = {
             'title': 'Teraka Platform - Suivi Agroforestier',
             'site_header': 'Teraka Platform',
             'site_title': 'Teraka',
-            
+
             # Statistiques globales
             'communes_count': Communes.objects.count(),
             'bosquets_total': BosquetBaseline.objects.count(),
@@ -34,7 +33,7 @@ def home_page_view(request):
             'membres_suivi': MembreSuivi.objects.count(),
             'pg_total': PgInfos.objects.count(),
             'pg_suivi': PgSuivi.objects.count(),
-            
+
             # Calculs
             'bosquets_coverage': (
                 (BosquetSuivi.objects.count() / BosquetBaseline.objects.count() * 100)
@@ -51,9 +50,9 @@ def home_page_view(request):
             'is_authenticated': request.user.is_authenticated,
             'is_admin': request.user.is_superuser if request.user.is_authenticated else False,
         }
-        
+
         return render(request, 'home.html', context)
-    
+
     except Exception as e:
         # En cas d'erreur, afficher une page simple
         context = {
@@ -67,7 +66,6 @@ def home_page_view(request):
 # ============================================================================
 # LOGIN & AUTHENTICATION
 # ============================================================================
-
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import PostgrestTokenSerializer
 
@@ -108,7 +106,6 @@ class PostgrestProxyView(ProxyView):
 # ============================================================================
 # RBAC HUB - Page centrale pour gérer les permissions RBAC
 # ============================================================================
-
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_http_methods
@@ -132,7 +129,6 @@ def rbac_hub_view(request):
 # ============================================================================
 # API VIEWS - Vues pour les API REST de gestion
 # ============================================================================
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -154,10 +150,10 @@ def platform_statistics_view(request):
             BosquetBaseline, BosquetSuivi, ArbreBaseline, ArbreSuivi,
             Membre, MembreSuivi, Communes, PgInfos, PgSuivi
         )
-        
+
         now = timezone.now()
         last_30_days = now - timedelta(days=30)
-        
+
         stats = {
             'timestamp': now.isoformat(),
             'platform': {
@@ -185,9 +181,9 @@ def platform_statistics_view(request):
                 ).count(),
             }
         }
-        
+
         return Response(stats, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -203,28 +199,28 @@ def bosquet_statistics_view(request):
     """
     try:
         from core.models import BosquetBaseline, BosquetSuivi
-        
+
         bosquets = BosquetBaseline.objects.all().values('uuid_bosquet_baseline', 'c_com')
-        
+
         stats_list = []
         for bosquet in bosquets:
             bosquet_id = bosquet['uuid_bosquet_baseline']
             suivi_count = BosquetSuivi.objects.filter(
                 uuid_bosquet_baseline=bosquet_id
             ).count()
-            
+
             stats_list.append({
                 'bosquet_id': str(bosquet_id),
                 'commune': bosquet['c_com'],
                 'suivi_count': suivi_count,
             })
-        
+
         return Response({
             'timestamp': timezone.now().isoformat(),
             'bosquets_count': len(stats_list),
             'data': stats_list
         }, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -243,58 +239,58 @@ def data_validation_view(request):
             BosquetBaseline, BosquetSuivi, ArbreBaseline, ArbreSuivi,
             Membre, MembreSuivi
         )
-        
+
         validation_errors = {
             'timestamp': timezone.now().isoformat(),
             'errors': [],
             'warnings': [],
             'summary': {}
         }
-        
+
         # Vérifier les bosquets sans arbres
         bosquets_sans_arbres = BosquetBaseline.objects.annotate(
             arbre_count=Count('arbrebaseline')
         ).filter(arbre_count=0).count()
-        
+
         if bosquets_sans_arbres > 0:
             validation_errors['warnings'].append({
                 'type': 'bosquets_sans_arbres',
                 'count': bosquets_sans_arbres,
                 'message': f'{bosquets_sans_arbres} bosquets sans arbres enregistrés'
             })
-        
+
         # Vérifier les arbres sans bosquet
         arbres_orphelins = ArbreBaseline.objects.filter(
             uuid_bosquet_baseline__isnull=True
         ).count()
-        
+
         if arbres_orphelins > 0:
             validation_errors['errors'].append({
                 'type': 'arbres_orphelins',
                 'count': arbres_orphelins,
                 'message': f'{arbres_orphelins} arbres sans bosquet'
             })
-        
+
         # Vérifier les membres sans commune
         membres_sans_commune = Membre.objects.filter(
             c_com__isnull=True
         ).count()
-        
+
         if membres_sans_commune > 0:
             validation_errors['warnings'].append({
                 'type': 'membres_sans_commune',
                 'count': membres_sans_commune,
                 'message': f'{membres_sans_commune} membres sans commune'
             })
-        
+
         validation_errors['summary'] = {
             'total_errors': len(validation_errors['errors']),
             'total_warnings': len(validation_errors['warnings']),
             'critical': len(validation_errors['errors']) > 0
         }
-        
+
         return Response(validation_errors, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -310,9 +306,9 @@ def user_activity_log_view(request):
     """
     try:
         from django.contrib.admin.models import LogEntry
-        
+
         last_30_days = timezone.now() - timedelta(days=30)
-        
+
         logs = LogEntry.objects.filter(
             action_time__gte=last_30_days
         ).values(
@@ -321,9 +317,9 @@ def user_activity_log_view(request):
             'action_flag',
             'action_time'
         ).order_by('-action_time')[:100]
-        
+
         action_names = {1: 'CREATE', 2: 'EDIT', 3: 'DELETE'}
-        
+
         logs_list = []
         for log in logs:
             logs_list.append({
@@ -332,13 +328,13 @@ def user_activity_log_view(request):
                 'action': action_names.get(log['action_flag'], 'UNKNOWN'),
                 'timestamp': log['action_time'].isoformat()
             })
-        
+
         return Response({
             'timestamp': timezone.now().isoformat(),
             'logs_count': len(logs_list),
             'data': logs_list
         }, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -355,13 +351,13 @@ def system_health_view(request):
     try:
         from django.db import connection
         import os
-        
+
         health = {
             'timestamp': timezone.now().isoformat(),
             'status': 'healthy',
             'checks': {}
         }
-        
+
         # Vérifier la base de données
         try:
             with connection.cursor() as cursor:
@@ -376,13 +372,13 @@ def system_health_view(request):
                 'message': str(e)
             }
             health['status'] = 'unhealthy'
-        
+
         # Vérifier l'espace disque
         try:
             import shutil
             disk_usage = shutil.disk_usage('/')
             percent_used = (disk_usage.used / disk_usage.total) * 100
-            
+
             health['checks']['disk_space'] = {
                 'status': 'ok' if percent_used < 90 else 'warning',
                 'used_gb': disk_usage.used / (1024**3),
@@ -394,16 +390,16 @@ def system_health_view(request):
                 'status': 'unknown',
                 'message': str(e)
             }
-        
+
         # Vérifier les fichiers statiques
         static_path = os.path.join(os.path.dirname(__file__), '../static')
         health['checks']['static_files'] = {
             'status': 'ok' if os.path.exists(static_path) else 'missing',
             'path': static_path
         }
-        
+
         return Response(health, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e), 'status': 'error'},
@@ -419,27 +415,27 @@ def members_by_region_view(request):
     """
     try:
         from core.models import Membre, Communes
-        
+
         communes = Communes.objects.all().values('c_com', 'nom_commun')
-        
+
         regions_data = []
         for commune in communes:
             members_count = Membre.objects.filter(
                 c_com=commune['c_com']
             ).count()
-            
+
             regions_data.append({
                 'commune_code': commune['c_com'],
                 'commune_name': commune['nom_commun'],
                 'members_count': members_count
             })
-        
+
         return Response({
             'timestamp': timezone.now().isoformat(),
             'total_communes': len(regions_data),
             'data': sorted(regions_data, key=lambda x: x['members_count'], reverse=True)
         }, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -458,18 +454,18 @@ def data_quality_report_view(request):
             BosquetBaseline, BosquetSuivi, ArbreBaseline, ArbreSuivi,
             Membre, MembreSuivi, PgInfos, PgSuivi
         )
-        
+
         report = {
             'timestamp': timezone.now().isoformat(),
             'data_completeness': {},
             'data_freshness': {},
             'quality_score': 0
         }
-        
+
         # Complétude des données
         bosquet_total = BosquetBaseline.objects.count()
         bosquet_with_suivi = BosquetSuivi.objects.count()
-        
+
         report['data_completeness'] = {
             'bosquets': {
                 'baseline': bosquet_total,
@@ -485,11 +481,11 @@ def data_quality_report_view(request):
                 'suivi': MembreSuivi.objects.count(),
             }
         }
-        
+
         # Fraîcheur des données (dernière mise à jour)
         now = timezone.now()
         last_7_days = now - timedelta(days=7)
-        
+
         report['data_freshness'] = {
             'bosquet_suivi_last_7d': BosquetSuivi.objects.filter(
                 updated_at__gte=last_7_days
@@ -498,14 +494,14 @@ def data_quality_report_view(request):
                 updated_at__gte=last_7_days
             ).count(),
         }
-        
+
         # Score de qualité (0-100)
         coverage = report['data_completeness']['bosquets']['coverage_percent']
         freshness_score = min(100, report['data_freshness']['bosquet_suivi_last_7d'] * 10)
         report['quality_score'] = int((coverage + freshness_score) / 2)
-        
+
         return Response(report, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -523,13 +519,13 @@ def data_export_view(request):
     try:
         export_format = request.data.get('format', 'json')
         tables = request.data.get('tables', ['bosquets', 'arbres', 'membres'])
-        
+
         export_data = {
             'timestamp': timezone.now().isoformat(),
             'format': export_format,
             'tables': {}
         }
-        
+
         if 'bosquets' in tables:
             from core.models import BosquetBaseline
             bosquets = list(BosquetBaseline.objects.values())
@@ -537,7 +533,7 @@ def data_export_view(request):
                 'count': len(bosquets),
                 'data': bosquets[:100]  # Limiter à 100 pour la réponse API
             }
-        
+
         if 'arbres' in tables:
             from core.models import ArbreBaseline
             arbres = list(ArbreBaseline.objects.values())
@@ -545,7 +541,7 @@ def data_export_view(request):
                 'count': len(arbres),
                 'data': arbres[:100]
             }
-        
+
         if 'membres' in tables:
             from core.models import Membre
             membres = list(Membre.objects.values())
@@ -553,11 +549,216 @@ def data_export_view(request):
                 'count': len(membres),
                 'data': membres[:100]
             }
-        
+
         return Response(export_data, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================================================
+# AUDIT LOG VIEW - Consultation des logs d'audit
+# ============================================================================
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
+
+
+@login_required
+@require_http_methods(["GET"])
+def audit_logs_view(request):
+    """
+    Page de consultation des logs d'audit
+    Accessible uniquement aux utilisateurs authentifiés et aux administrateurs
+    """
+    try:
+        from core.models import AuditLog
+
+        # Initialiser les filtres
+        table_name = request.GET.get('table_name', '')
+        operation = request.GET.get('operation', '')
+        user_id = request.GET.get('user_id', '')
+        search = request.GET.get('search', '')
+
+        # Récupérer tous les logs
+        logs = AuditLog.objects.all().order_by('-action_time')
+
+        # Appliquer les filtres
+        if table_name:
+            logs = logs.filter(table_name__icontains=table_name)
+
+        if operation:
+            logs = logs.filter(operation__iexact=operation)
+
+        if user_id:
+            logs = logs.filter(user_id__icontains=user_id)
+
+        if search:
+            logs = logs.filter(
+                Q(table_name__icontains=search) |
+                Q(record_id__icontains=search) |
+                Q(user_id__icontains=search) |
+                Q(operation__icontains=search)
+            )
+
+        # Pagination
+        paginator = Paginator(logs, 50)  # 50 logs par page
+        page = request.GET.get('page')
+
+        try:
+            logs_page = paginator.page(page)
+        except PageNotAnInteger:
+            logs_page = paginator.page(1)
+        except EmptyPage:
+            logs_page = paginator.page(paginator.num_pages)
+
+        # Récupérer les tables uniques pour le filtre
+        tables = AuditLog.objects.values_list('table_name', flat=True).distinct().order_by('table_name')
+
+        # Récupérer les opérations uniques
+        operations = AuditLog.objects.values_list('operation', flat=True).distinct().order_by('operation')
+
+        context = {
+            'logs': logs_page,
+            'paginator': paginator,
+            'tables': tables,
+            'operations': operations,
+            'selected_table': table_name,
+            'selected_operation': operation,
+            'selected_user': user_id,
+            'search_query': search,
+            'total_logs': logs.count(),
+            'is_admin': request.user.is_superuser,
+        }
+
+        return render(request, 'admin/audit_logs.html', context)
+
+    except Exception as e:
+        import traceback
+        context = {
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'is_admin': request.user.is_superuser,
+        }
+        return render(request, 'admin/audit_logs.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def audit_log_detail_view(request, log_id):
+    """
+    Vue détaillée d'un log d'audit
+    """
+    try:
+        from core.models import AuditLog
+        import json
+
+        log = AuditLog.objects.get(id=log_id)
+
+        # Parser les JSON si disponibles
+        old_data = log.old_data
+        new_data = log.new_data
+
+        if isinstance(old_data, str):
+            try:
+                old_data = json.loads(old_data)
+            except:
+                pass
+
+        if isinstance(new_data, str):
+            try:
+                new_data = json.loads(new_data)
+            except:
+                pass
+
+        context = {
+            'log': log,
+            'old_data': old_data,
+            'new_data': new_data,
+            'is_admin': request.user.is_superuser,
+        }
+
+        return render(request, 'admin/audit_log_detail.html', context)
+
+    except AuditLog.DoesNotExist:
+        context = {
+            'error': 'Log non trouvé',
+            'is_admin': request.user.is_superuser,
+        }
+        return render(request, 'admin/audit_log_detail.html', context, status=404)
+
+    except Exception as e:
+        import traceback
+        context = {
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'is_admin': request.user.is_superuser,
+        }
+        return render(request, 'admin/audit_log_detail.html', context)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def audit_logs_api_view(request):
+    """
+    API pour récupérer les logs d'audit (JSON)
+    Filtres disponibles: table_name, operation, user_id, days (nombre de jours)
+    """
+    try:
+        from core.models import AuditLog
+        from datetime import timedelta
+
+        table_name = request.GET.get('table_name', '')
+        operation = request.GET.get('operation', '')
+        user_id = request.GET.get('user_id', '')
+        days = int(request.GET.get('days', 30))
+        limit = int(request.GET.get('limit', 100))
+
+        # Filtrer par date
+        since = timezone.now() - timedelta(days=days)
+        logs = AuditLog.objects.filter(action_time__gte=since).order_by('-action_time')
+
+        # Appliquer les filtres
+        if table_name:
+            logs = logs.filter(table_name__icontains=table_name)
+
+        if operation:
+            logs = logs.filter(operation__iexact=operation)
+
+        if user_id:
+            logs = logs.filter(user_id__icontains=user_id)
+
+        # Limiter le nombre de résultats
+        logs = logs[:limit]
+
+        logs_list = []
+        for log in logs:
+            logs_list.append({
+                'id': log.id,
+                'table_name': log.table_name,
+                'operation': log.operation,
+                'record_id': log.record_id,
+                'user_id': log.user_id,
+                'action_time': log.action_time.isoformat(),
+                'old_data': log.old_data,
+                'new_data': log.new_data,
+                'current_hash': log.current_hash,
+            })
+
+        return Response({
+            'count': len(logs_list),
+            'days': days,
+            'limit': limit,
+            'timestamp': timezone.now().isoformat(),
+            'data': logs_list
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
