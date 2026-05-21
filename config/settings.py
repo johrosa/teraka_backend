@@ -134,6 +134,10 @@ SIMPLE_JWT = {
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
 }
 
+# Authentication redirects
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/admin/login/'
+
 # Session timeout configuration
 # SESSION_SAVE_EVERY_REQUEST = True ensures the session (and timeout) is
 # extended on every interaction with the backend (sliding session).

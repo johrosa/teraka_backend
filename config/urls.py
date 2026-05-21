@@ -29,9 +29,6 @@ from core.views import (
     members_by_region_view,
     data_quality_report_view,
     data_export_view,
-    audit_logs_view,
-    audit_log_detail_view,
-    audit_logs_api_view,
 )
 
 from django.urls import re_path
@@ -55,10 +52,6 @@ urlpatterns = [
     path('admin/rbac/import/', RBACImportView.as_view(), name='rbac_import'),
     path('admin/rbac/status/', RBACStatusView.as_view(), name='rbac_status'),
     
-    # URLs Audit Logs
-    path('admin/audit-logs/', audit_logs_view, name='audit_logs'),
-    path('admin/audit-logs/<int:log_id>/', audit_log_detail_view, name='audit_log_detail'),
-
     # Dashboard Teraka personnalisé
     path('admin/dashboard/', teraka_admin.admin_view(teraka_admin.dashboard_view), name='teraka_dashboard'),
     
@@ -81,7 +74,6 @@ urlpatterns = [
     path('api/members-by-region/', members_by_region_view, name='api_members_region'),
     path('api/data-quality/', data_quality_report_view, name='api_data_quality'),
     path('api/export/', data_export_view, name='api_export'),
-    path('api/audit-logs/', audit_logs_api_view, name='api_audit_logs'),
 
     # Toutes les requêtes commençant par api/data/ iront vers PostgREST
     re_path(r'^api/data/(?P<path>.*)$', PostgrestProxyView.as_view(), name='postgrest_proxy'),

@@ -62,7 +62,3 @@ class UserRole(models.Model):
     
     def __str__(self):
         return f"{self.user.username} ({self.role or 'Aucun rôle'})"
-    
-    def save(self, *args, **kwargs):
-        """Override pour ajouter des traitements avant la sauvegarde"""
-        super().save(*args, **kwargs)

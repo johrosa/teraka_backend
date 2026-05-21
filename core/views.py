@@ -1,6 +1,7 @@
 # ============================================================================
 # HOME PAGE - Page d'accueil de la plateforme
 # ============================================================================
+
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
@@ -66,6 +67,7 @@ def home_page_view(request):
 # ============================================================================
 # LOGIN & AUTHENTICATION
 # ============================================================================
+
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import PostgrestTokenSerializer
 
@@ -106,6 +108,7 @@ class PostgrestProxyView(ProxyView):
 # ============================================================================
 # RBAC HUB - Page centrale pour gérer les permissions RBAC
 # ============================================================================
+
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_http_methods
@@ -129,6 +132,7 @@ def rbac_hub_view(request):
 # ============================================================================
 # API VIEWS - Vues pour les API REST de gestion
 # ============================================================================
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -557,208 +561,3 @@ def data_export_view(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-
-# ============================================================================
-# AUDIT LOG VIEW - Consultation des logs d'audit
-# ============================================================================
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
-
-
-@login_required
-@require_http_methods(["GET"])
-def audit_logs_view(request):
-    """
-    Page de consultation des logs d'audit
-    Accessible uniquement aux utilisateurs authentifiés et aux administrateurs
-    """
-    try:
-        from core.models import AuditLog
-
-        # Initialiser les filtres
-        table_name = request.GET.get('table_name', '')
-        operation = request.GET.get('operation', '')
-        user_id = request.GET.get('user_id', '')
-        search = request.GET.get('search', '')
-
-        # Récupérer tous les logs
-        logs = AuditLog.objects.all().order_by('-action_time')
-
-        # Appliquer les filtres
-        if table_name:
-            logs = logs.filter(table_name__icontains=table_name)
-
-        if operation:
-            logs = logs.filter(operation__iexact=operation)
-
-        if user_id:
-            logs = logs.filter(user_id__icontains=user_id)
-
-        if search:
-            logs = logs.filter(
-                Q(table_name__icontains=search) |
-                Q(record_id__icontains=search) |
-                Q(user_id__icontains=search) |
-                Q(operation__icontains=search)
-            )
-
-        # Pagination
-        paginator = Paginator(logs, 50)  # 50 logs par page
-        page = request.GET.get('page')
-
-        try:
-            logs_page = paginator.page(page)
-        except PageNotAnInteger:
-            logs_page = paginator.page(1)
-        except EmptyPage:
-            logs_page = paginator.page(paginator.num_pages)
-
-        # Récupérer les tables uniques pour le filtre
-        tables = AuditLog.objects.values_list('table_name', flat=True).distinct().order_by('table_name')
-
-        # Récupérer les opérations uniques
-        operations = AuditLog.objects.values_list('operation', flat=True).distinct().order_by('operation')
-
-        context = {
-            'logs': logs_page,
-            'paginator': paginator,
-            'tables': tables,
-            'operations': operations,
-            'selected_table': table_name,
-            'selected_operation': operation,
-            'selected_user': user_id,
-            'search_query': search,
-            'total_logs': logs.count(),
-            'is_admin': request.user.is_superuser,
-        }
-
-        return render(request, 'admin/audit_logs.html', context)
-
-    except Exception as e:
-        import traceback
-        context = {
-            'error': str(e),
-            'traceback': traceback.format_exc(),
-            'is_admin': request.user.is_superuser,
-        }
-        return render(request, 'admin/audit_logs.html', context)
-
-
-@login_required
-@require_http_methods(["GET"])
-def audit_log_detail_view(request, log_id):
-    """
-    Vue détaillée d'un log d'audit
-    """
-    try:
-        from core.models import AuditLog
-        import json
-
-        log = AuditLog.objects.get(id=log_id)
-
-        # Parser les JSON si disponibles
-        old_data = log.old_data
-        new_data = log.new_data
-
-        if isinstance(old_data, str):
-            try:
-                old_data = json.loads(old_data)
-            except:
-                pass
-
-        if isinstance(new_data, str):
-            try:
-                new_data = json.loads(new_data)
-            except:
-                pass
-
-        context = {
-            'log': log,
-            'old_data': old_data,
-            'new_data': new_data,
-            'is_admin': request.user.is_superuser,
-        }
-
-        return render(request, 'admin/audit_log_detail.html', context)
-
-    except AuditLog.DoesNotExist:
-        context = {
-            'error': 'Log non trouvé',
-            'is_admin': request.user.is_superuser,
-        }
-        return render(request, 'admin/audit_log_detail.html', context, status=404)
-
-    except Exception as e:
-        import traceback
-        context = {
-            'error': str(e),
-            'traceback': traceback.format_exc(),
-            'is_admin': request.user.is_superuser,
-        }
-        return render(request, 'admin/audit_log_detail.html', context)
-
-
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
-def audit_logs_api_view(request):
-    """
-    API pour récupérer les logs d'audit (JSON)
-    Filtres disponibles: table_name, operation, user_id, days (nombre de jours)
-    """
-    try:
-        from core.models import AuditLog
-        from datetime import timedelta
-
-        table_name = request.GET.get('table_name', '')
-        operation = request.GET.get('operation', '')
-        user_id = request.GET.get('user_id', '')
-        days = int(request.GET.get('days', 30))
-        limit = int(request.GET.get('limit', 100))
-
-        # Filtrer par date
-        since = timezone.now() - timedelta(days=days)
-        logs = AuditLog.objects.filter(action_time__gte=since).order_by('-action_time')
-
-        # Appliquer les filtres
-        if table_name:
-            logs = logs.filter(table_name__icontains=table_name)
-
-        if operation:
-            logs = logs.filter(operation__iexact=operation)
-
-        if user_id:
-            logs = logs.filter(user_id__icontains=user_id)
-
-        # Limiter le nombre de résultats
-        logs = logs[:limit]
-
-        logs_list = []
-        for log in logs:
-            logs_list.append({
-                'id': log.id,
-                'table_name': log.table_name,
-                'operation': log.operation,
-                'record_id': log.record_id,
-                'user_id': log.user_id,
-                'action_time': log.action_time.isoformat(),
-                'old_data': log.old_data,
-                'new_data': log.new_data,
-                'current_hash': log.current_hash,
-            })
-
-        return Response({
-            'count': len(logs_list),
-            'days': days,
-            'limit': limit,
-            'timestamp': timezone.now().isoformat(),
-            'data': logs_list
-        }, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-

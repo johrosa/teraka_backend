@@ -41,12 +41,7 @@ class TerakaAdminSite(admin.AdminSite):
         active_users = User.objects.filter(is_active=True).count()
         staff_users = User.objects.filter(is_staff=True).count()
         superuser_count = User.objects.filter(is_superuser=True).count()
-
-        # RBAC stats - gérer le cas où la table n'existe pas encore
-        try:
-            rbac_stats = UserRole.objects.values('role_id').annotate(count=Count('role_id')).order_by('role_id')
-        except Exception:
-            rbac_stats = []
+        rbac_stats = UserRole.objects.values('role').annotate(count=Count('role')).order_by('role')
 
         # --- Dashboard Terrain (Suivi Agroforestier) ---
         communes_count = Communes.objects.count()

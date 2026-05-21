@@ -1,9 +1,8 @@
 from django.contrib.gis import admin
-from django.contrib.admin.sites import AlreadyRegistered
 from django.apps import apps
 from core.models import (
     Membre, ArbreBaseline, ArbreSuivi, BosquetBaseline, BosquetSuivi,
-    PgInfos, Communes, EspecesArbres, Users, AuditLog
+    PgInfos, Communes, EspecesArbres, Users
 )
 from core.models_rbac import UserRole
 
@@ -57,28 +56,6 @@ class PgInfosAdmin(admin.ModelAdmin):
     list_filter = ('statut_pg', 'annee_inscription', 'c_com')
     search_fields = ('nom_pg', 'code_pg', 'representant_pg')
 
-@admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
-    list_display = ('id', 'table_name', 'operation', 'user_id', 'action_time', 'record_id')
-    list_filter = ('operation', 'table_name', 'action_time')
-    search_fields = ('table_name', 'record_id', 'user_id', 'operation')
-    readonly_fields = ('id', 'table_name', 'operation', 'record_id', 'user_id', 'action_time', 
-                       'old_data', 'new_data', 'previous_hash', 'current_hash')
-    list_per_page = 50
-    date_hierarchy = 'action_time'
-    
-    def has_add_permission(self, request):
-        """Les logs ne peuvent pas être ajoutés manuellement"""
-        return False
-    
-    def has_delete_permission(self, request, obj=None):
-        """Seuls les superusers peuvent supprimer les logs"""
-        return request.user.is_superuser
-    
-    def has_change_permission(self, request, obj=None):
-        """Les logs sont read-only"""
-        return False
-
 # --- Enregistrement dynamique pour les autres modèles ---
 
 app_models = apps.get_app_config('core').get_models()
@@ -109,7 +86,7 @@ for model in app_models:
                     'map_height': 400,
                 }
             }
-    except (AlreadyRegistered, TypeError):
+    except (admin.sites.AlreadyRegistered, TypeError):
         pass
 
 
@@ -129,6 +106,24 @@ from django.contrib.admin.views.decorators import staff_member_required
 
 class CsvImportForm(forms.Form):
     csv_file = forms.FileField(label="Fichier RBAC (CSV)")
+
+
+class UserRoleForm(forms.ModelForm):
+    """Formulaire personnalisé pour UserRole pour gérer le champ virtuel role_select"""
+    role_select = forms.ChoiceField(
+        choices=UserRole.POSTGRES_ROLES,
+        label="Rôle PostgreSQL",
+        required=True
+    )
+
+    class Meta:
+        model = UserRole
+        fields = ('user', 'role_select')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['role_select'].initial = self.instance.role
 
 
 class RBACImportView(View):
@@ -334,6 +329,7 @@ class RBACStatusView(View):
 
 @admin.register(UserRole)
 class UserRoleAdmin(admin.ModelAdmin):
+    form = UserRoleForm
     list_display = ['user', 'get_role_display', 'get_role_description', 'created_at', 'updated_at', 'is_active_user']
     list_filter = ['created_at', 'updated_at', 'user__is_active']
     search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
@@ -356,25 +352,6 @@ class UserRoleAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ['created_at', 'updated_at', 'is_active_user']
-
-    def get_form(self, request, obj=None, **kwargs):
-        """Ajoute un champ de sélection pour le rôle qui n'est plus dans le modèle"""
-        form_class = super().get_form(request, obj, **kwargs)
-
-        # On définit une classe interne pour ne pas modifier la classe parente
-        class UserRoleForm(form_class):
-            role_select = forms.ChoiceField(
-                choices=UserRole.POSTGRES_ROLES,
-                label="Rôle PostgreSQL",
-                required=True
-            )
-
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                if self.instance and self.instance.pk:
-                    self.fields['role_select'].initial = self.instance.role
-
-        return UserRoleForm
 
     def get_role_display(self, obj):
         """Affiche le rôle actuel (propriété)"""

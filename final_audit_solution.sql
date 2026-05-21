@@ -170,4 +170,4 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS audit_commune ON communes;
 CREATE TRIGGER audit_commune
 AFTER INSERT OR UPDATE OR DELETE ON communes
-FOR EACH ROW EXECUTE FUNCTION audit_trigger();
+FOR EACH ROW EXECUTE FUNCTION audit_trigger('uuid_com');
