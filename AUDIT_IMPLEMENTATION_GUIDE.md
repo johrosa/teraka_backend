@@ -1,10 +1,11 @@
 # Guide d'implémentation de l'audit log et corrections Teraka
 
-Ce document explique comment déployer le système d'audit complet et appliquer les corrections de schéma nécessaires.
+Ce document explique comment déployer le système d'audit complet et gérer les rôles utilisateurs.
 
-## 1. Correction du bug UserRole
-Si vous rencontrez l'erreur `column core_userrole.role does not exist`, exécutez le script suivant :
-`psql -f fix_userrole_schema.sql`
+## 1. Gestion des rôles (UserRole)
+Le système a été mis à jour pour utiliser les **Groupes Django** au lieu d'une colonne dédiée dans la base de données. Cela permet d'éviter l'erreur `column core_userrole.role does not exist` tout en conservant l'interface d'administration habituelle.
+
+Aucune action SQL n'est requise pour cette partie, les changements sont gérés par le code Django.
 
 ## 2. Système d'audit (final_audit_solution.sql)
 Le système d'audit capture l'identité des utilisateurs Django via les claims JWT de PostgREST.

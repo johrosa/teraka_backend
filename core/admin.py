@@ -334,8 +334,8 @@ class RBACStatusView(View):
 
 @admin.register(UserRole)
 class UserRoleAdmin(admin.ModelAdmin):
-    list_display = ['user', 'role', 'get_role_description', 'created_at', 'updated_at', 'is_active_user']
-    list_filter = ['role', 'created_at', 'updated_at', 'user__is_active']
+    list_display = ['user', 'get_role_display', 'get_role_description', 'created_at', 'updated_at', 'is_active_user']
+    list_filter = ['created_at', 'updated_at', 'user__is_active']
     search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
     ordering = ['user__username']
     list_per_page = 25
@@ -346,7 +346,7 @@ class UserRoleAdmin(admin.ModelAdmin):
             'description': 'Sélectionnez l\'utilisateur Django à associer à un rôle.'
         }),
         ('Rôle PostgreSQL', {
-            'fields': ('role',),
+            'fields': ('role_select',),
             'description': 'Sélectionnez le rôle PostgreSQL qui sera utilisé pour les permissions PostgREST.'
         }),
         ('Informations système', {
@@ -356,6 +356,30 @@ class UserRoleAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ['created_at', 'updated_at', 'is_active_user']
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Ajoute un champ de sélection pour le rôle qui n'est plus dans le modèle"""
+        form_class = super().get_form(request, obj, **kwargs)
+
+        # On définit une classe interne pour ne pas modifier la classe parente
+        class UserRoleForm(form_class):
+            role_select = forms.ChoiceField(
+                choices=UserRole.POSTGRES_ROLES,
+                label="Rôle PostgreSQL",
+                required=True
+            )
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                if self.instance and self.instance.pk:
+                    self.fields['role_select'].initial = self.instance.role
+
+        return UserRoleForm
+
+    def get_role_display(self, obj):
+        """Affiche le rôle actuel (propriété)"""
+        return obj.role or "Aucun rôle"
+    get_role_display.short_description = 'Rôle'
 
     def get_queryset(self, request):
         """Optimiser les requêtes avec select_related"""
@@ -399,18 +423,22 @@ class UserRoleAdmin(admin.ModelAdmin):
                 )
                 return
 
+        # On récupère le rôle depuis le champ personnalisé du formulaire
+        role_name = form.cleaned_data.get('role_select')
+        obj.role = role_name  # Utilise le setter de la propriété dans models_rbac.py
+
         super().save_model(request, obj, form, change)
 
         if not change:  # Nouvelle création
             self.message_user(
                 request,
-                f"✅ L'utilisateur '{obj.user.username}' a été associé au rôle '{obj.role}'.",
+                f"✅ L'utilisateur '{obj.user.username}' a été associé au rôle '{role_name}'.",
                 level=messages.SUCCESS
             )
         else:
             self.message_user(
                 request,
-                f"✅ Le rôle de '{obj.user.username}' a été mis à jour en '{obj.role}'.",
+                f"✅ Le rôle de '{obj.user.username}' a été mis à jour en '{role_name}'.",
                 level=messages.SUCCESS
             )
 
