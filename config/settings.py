@@ -28,6 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    '192.168.0.172',
     '[::1]',
     'teraka-api.herokuapp.com',
     'teraka-api.onrender.com'
@@ -56,7 +57,7 @@ JAZZMIN_SETTINGS = {
     "site_title": "Teraka Admin",
     "site_header": "Teraka",
     "site_brand": "Teraka",
-    "site_logo": None,  # Vous pourrez ajouter un logo plus tard dans static
+    "site_logo": None,
     "login_logo": None,
     "welcome_sign": "Bienvenue sur l'administration Teraka",
     "copyright": "Teraka Ltd",
@@ -135,6 +136,7 @@ SIMPLE_JWT = {
 }
 
 # Authentication redirects
+LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
 
