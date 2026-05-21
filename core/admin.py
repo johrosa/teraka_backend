@@ -118,7 +118,7 @@ class UserRoleForm(forms.ModelForm):
 
     class Meta:
         model = UserRole
-        fields = ('user', 'role_select')
+        fields = ('user',)  # Seulement les champs réels du modèle ici
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
