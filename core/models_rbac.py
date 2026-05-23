@@ -43,13 +43,20 @@ class UsersManager(BaseUserManager):
             raise ValueError("L'adresse email est obligatoire")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+        import uuid
+        if 'uuid_user' not in extra_fields:
+            extra_fields['uuid_user'] = uuid.uuid4()
         return self.create_user(email, password, **extra_fields)
 
 
@@ -60,7 +67,6 @@ class Users(AbstractBaseUser, PermissionsMixin):
     nom = models.TextField()
     prenom = models.TextField(blank=True, null=True)
     email = models.EmailField(unique=True)
-    # On mappe password sur mot_de_passe
     mot_de_passe = models.TextField(db_column='mot_de_passe')
     num_tel = models.TextField(unique=True, blank=True, null=True)
     annee_naissance = models.IntegerField(blank=True, null=True)
@@ -71,6 +77,8 @@ class Users(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    last_login = models.DateTimeField(blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
     objects = UsersManager()
@@ -120,3 +128,13 @@ class FieldMapping(models.Model):
         verbose_name_plural = 'Correspondances de champs'
         ordering = ['model_name', 'field_name']
         unique_together = ('model_name', 'field_name')
+
+    @classmethod
+    def load_mappings(cls):
+        try:
+            return {
+                (mapping.model_name.lower(), mapping.field_name.lower()): mapping.source_field_name
+                for mapping in cls.objects.filter(enabled=True)
+            }
+        except Exception:
+            return {}

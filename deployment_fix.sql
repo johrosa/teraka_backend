@@ -2,13 +2,29 @@
 
 BEGIN;
 
--- 1. Ajout des colonnes Auth manquantes à la table users (car managed=False)
+-- 1. Ajout des colonnes Auth manquantes à la table users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_superuser BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMPTZ DEFAULT now();
 
--- 2. Création sécurisée de la table Role
+-- 2. Création des tables de liaison nécessaires pour PermissionsMixin (auth_user_groups / permissions)
+-- Note: On utilise 'users' comme nom de table source pour la cohérence
+CREATE TABLE IF NOT EXISTS users_groups (
+    id BIGSERIAL PRIMARY KEY,
+    users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES auth_group(id) ON DELETE CASCADE,
+    UNIQUE(users_id, group_id)
+);
+
+CREATE TABLE IF NOT EXISTS users_user_permissions (
+    id BIGSERIAL PRIMARY KEY,
+    users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
+    permission_id INTEGER NOT NULL REFERENCES auth_permission(id) ON DELETE CASCADE,
+    UNIQUE(users_id, permission_id)
+);
+
+-- 3. Création sécurisée de la table Role
 CREATE TABLE IF NOT EXISTS core_role (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(64) UNIQUE NOT NULL,
@@ -17,7 +33,7 @@ CREATE TABLE IF NOT EXISTS core_role (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Initialisation des rôles par défaut
+-- 4. Initialisation des rôles par défaut
 INSERT INTO core_role (code, description)
 VALUES
     ('Expansion_L1', 'Expansion L1 - Création seulement'),
@@ -29,7 +45,7 @@ VALUES
     ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression')
 ON CONFLICT (code) DO NOTHING;
 
--- 4. Mise à jour de core_userrole
+-- 5. Mise à jour de core_userrole
 DO $$
 BEGIN
     IF EXISTS (
@@ -45,7 +61,7 @@ BEGIN
     END IF;
 END $$;
 
--- 5. Création de FieldMapping
+-- 6. Création de FieldMapping
 CREATE TABLE IF NOT EXISTS core_fieldmapping (
     id BIGSERIAL PRIMARY KEY,
     model_name VARCHAR(128) NOT NULL,
@@ -58,7 +74,7 @@ CREATE TABLE IF NOT EXISTS core_fieldmapping (
     UNIQUE(model_name, field_name)
 );
 
--- 6. Enregistrement forcé des migrations
+-- 7. Enregistrement forcé des migrations
 INSERT INTO django_migrations (app, name, applied)
 VALUES
     ('core', '0001_initial', now()),

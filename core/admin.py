@@ -5,7 +5,7 @@ app_models = apps.get_app_config('core').get_models()
 
 # Exclure les modèles enregistrés manuellement
 from core.models_rbac import UserRole, FieldMapping
-excluded_models = {UserRole, FieldMapping}
+excluded_models = {Users, Role, FieldMapping, UserRole, FieldMapping}
 
 for model in app_models:
     if model in excluded_models:
@@ -354,9 +354,8 @@ class UserRoleAdmin(admin.ModelAdmin):
         }
 
 
-# --- Administration des Utilisateurs Personnalisés ---
+# --- Administration des Utilisateurs ---
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from core.models_rbac import Users
 
 @admin.register(Users)
 class UsersAdmin(BaseUserAdmin):
@@ -364,12 +363,10 @@ class UsersAdmin(BaseUserAdmin):
     list_filter = ('is_staff', 'is_superuser', 'is_active')
     search_fields = ('email', 'nom', 'prenom')
     ordering = ('email',)
-
     fieldsets = (
         (None, {'fields': ('email', 'mot_de_passe')}),
-        ('Informations personnelles', {'fields': ('nom', 'prenom', 'num_tel', 'adresse', 'photo')}),
+        ('Infos', {'fields': ('nom', 'prenom', 'num_tel')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Dates importantes', {'fields': ('last_login', 'date_joined')}),
     )
     add_fieldsets = (
         (None, {
