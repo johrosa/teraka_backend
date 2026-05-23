@@ -4,7 +4,7 @@ from django.apps import apps
 app_models = apps.get_app_config('core').get_models()
 
 # Exclure les modèles enregistrés manuellement
-from core.models_rbac import UserRole, FieldMapping
+from core.models_rbac import UserRole, FieldMapping, Users, Role
 excluded_models = {Users, Role, FieldMapping, UserRole, FieldMapping}
 
 for model in app_models:
