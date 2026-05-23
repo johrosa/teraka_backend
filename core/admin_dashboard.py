@@ -8,8 +8,10 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from core.models_rbac import UserRole
+
+User = get_user_model()
 
 
 class TerakaAdminSite(admin.AdminSite):

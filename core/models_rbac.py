@@ -2,7 +2,8 @@
 Model pour associer les utilisateurs Django aux rôles PostgreSQL RBAC
 """
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
 
 
 DEFAULT_POSTGRES_ROLES = [
@@ -17,23 +18,10 @@ DEFAULT_POSTGRES_ROLES = [
 
 
 class Role(models.Model):
-    """
-    Rôle PostgreSQL stocké en base pour permettre l'ajout et la gestion dynamique.
-    """
-
-    code = models.CharField(
-        max_length=64,
-        unique=True,
-        verbose_name='Code du rôle',
-        help_text='Identifiant unique du rôle PostgreSQL'
-    )
-    description = models.CharField(
-        max_length=255,
-        verbose_name='Description du rôle',
-        help_text='Description courte du rôle'
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    code = models.CharField(max_length=64, unique=True, verbose_name='Code du rôle')
+    description = models.CharField(max_length=255, verbose_name='Description du rôle')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Rôle PostgreSQL'
@@ -49,91 +37,86 @@ class Role(models.Model):
             cls.objects.get_or_create(code=code, defaults={'description': description})
 
 
-class UserRole(models.Model):
-    """
-    Association entre un utilisateur Django et un rôle PostgreSQL
-    Permet de contrôler les permissions de chaque utilisateur
-    """
+class UsersManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("L'adresse email est obligatoire")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
-    POSTGRES_ROLES = DEFAULT_POSTGRES_ROLES
-    
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name='postgres_role',
-        verbose_name='Utilisateur Django'
-    )
-    
-    role = models.ForeignKey(
-        Role,
-        on_delete=models.PROTECT,
-        related_name='user_roles',
-        verbose_name='Rôle PostgreSQL',
-        help_text='Le rôle qui sera utilisé pour les permissions PostgREST'
-    )
-    
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
-    
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
+
+
+class Users(AbstractBaseUser, PermissionsMixin):
+    uuid_user = models.UUIDField(unique=True, primary_key=True)
+    operateur_id = models.TextField(blank=True, null=True)
+    c_com = models.ForeignKey('core.Communes', models.DO_NOTHING, db_column='c_com', to_field='c_com', blank=True, null=True)
+    nom = models.TextField()
+    prenom = models.TextField(blank=True, null=True)
+    email = models.EmailField(unique=True)
+    # On mappe password sur mot_de_passe
+    mot_de_passe = models.TextField(db_column='mot_de_passe')
+    num_tel = models.TextField(unique=True, blank=True, null=True)
+    annee_naissance = models.IntegerField(blank=True, null=True)
+    genre = models.TextField(blank=True, null=True)
+    adresse = models.TextField(blank=True, null=True)
+    role_name = models.TextField(db_column='role', blank=True, null=True)
+    photo = models.TextField(blank=True, null=True)
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    objects = UsersManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['nom']
+
+    class Meta:
+        managed = False
+        db_table = 'users'
+
+    def __str__(self):
+        return f"{self.email} ({self.nom})"
+
+    @property
+    def password(self):
+        return self.mot_de_passe
+
+    @password.setter
+    def password(self, value):
+        self.mot_de_passe = value
+
+
+class UserRole(models.Model):
+    user = models.OneToOneField('core.Users', on_delete=models.CASCADE, related_name='postgres_role')
+    role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name='user_roles')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
         verbose_name = 'Association Utilisateur-Rôle'
         verbose_name_plural = 'Associations Utilisateur-Rôle'
-        ordering = ['user__username']
-    
-    def __str__(self):
-        return f"{self.user.username} ({self.role.code})"
-
-    def save(self, *args, **kwargs):
-        """Override pour ajouter des traitements avant la sauvegarde"""
-        super().save(*args, **kwargs)
+        ordering = ['user__email']
 
 
 class FieldMapping(models.Model):
-    """
-    Correspondance manuelle entre un champ Django et un champ source QGIS.
-    """
-
-    model_name = models.CharField(
-        max_length=128,
-        verbose_name='Modèle Django',
-        help_text='Nom du modèle Django source (ex: communes)'
-    )
-    field_name = models.CharField(
-        max_length=128,
-        verbose_name='Champ Django',
-        help_text='Nom du champ dans le modèle Django'
-    )
-    source_field_name = models.CharField(
-        max_length=128,
-        verbose_name='Champ source QGIS',
-        help_text='Nom du champ dans la source QGIS qui correspond'
-    )
-    comment = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='Commentaire',
-        help_text='Note explicative sur la correspondance'
-    )
-    enabled = models.BooleanField(
-        default=True,
-        verbose_name='Active',
-        help_text='Activer ou désactiver cette correspondance'
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    model_name = models.CharField(max_length=128)
+    field_name = models.CharField(max_length=128)
+    source_field_name = models.CharField(max_length=128)
+    comment = models.TextField(blank=True, null=True)
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Correspondance de champ'
         verbose_name_plural = 'Correspondances de champs'
         ordering = ['model_name', 'field_name']
         unique_together = ('model_name', 'field_name')
-
-    def __str__(self):
-        return f"{self.model_name}.{self.field_name} → {self.source_field_name}"
-
-    @classmethod
-    def load_mappings(cls):
-        return {
-            (mapping.model_name.lower(), mapping.field_name.lower()): mapping.source_field_name
-            for mapping in cls.objects.filter(enabled=True)
-        }

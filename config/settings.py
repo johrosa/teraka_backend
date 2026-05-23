@@ -61,12 +61,12 @@ JAZZMIN_SETTINGS = {
     "login_logo": None,
     "welcome_sign": "Bienvenue sur l'administration Teraka",
     "copyright": "Teraka Ltd",
-    "search_model": ["auth.User"],
+    "search_model": ["core.Users"],
     "user_avatar": None,
     "topmenu_links": [
-        {"name": "Accueil", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Accueil", "url": "admin:index", "permissions": ["core.view_users"]},
         {"name": "Support", "url": "https://www.teraka.org/", "new_window": True},
-        {"model": "auth.User"},
+        {"model": "core.Users"},
     ],
     "show_sidebar": True,
     "navigation_expanded": True,
@@ -74,7 +74,7 @@ JAZZMIN_SETTINGS = {
     "hide_models": [],
     "icons": {
         "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
+        "core.Users": "fas fa-user",
         "auth.Group": "fas fa-users",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
@@ -84,7 +84,7 @@ JAZZMIN_SETTINGS = {
     "custom_js": None,
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {"auth.user": "collapsible_list", "auth.group": "vertical_tabs"},
+    "changeform_format_overrides": {"core.Users": "collapsible_list", "auth.group": "vertical_tabs"},
     "default_theme_mode": "auto",
 }
 
@@ -147,6 +147,13 @@ LOGOUT_REDIRECT_URL = '/admin/login/'
 SESSION_COOKIE_AGE = 3600  # 60 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+AUTH_USER_MODEL = 'core.Users'
+
+AUTHENTICATION_BACKENDS = [
+    'core.auth_backend.UsersTableBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', # Indispensable pour l'API

@@ -353,3 +353,27 @@ class UserRoleAdmin(admin.ModelAdmin):
             'all': ('admin/css/userrole_admin.css',)
         }
 
+
+# --- Administration des Utilisateurs Personnalisés ---
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from core.models_rbac import Users
+
+@admin.register(Users)
+class UsersAdmin(BaseUserAdmin):
+    list_display = ('email', 'nom', 'prenom', 'is_staff', 'is_active')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    search_fields = ('email', 'nom', 'prenom')
+    ordering = ('email',)
+
+    fieldsets = (
+        (None, {'fields': ('email', 'mot_de_passe')}),
+        ('Informations personnelles', {'fields': ('nom', 'prenom', 'num_tel', 'adresse', 'photo')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Dates importantes', {'fields': ('last_login', 'date_joined')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'nom', 'mot_de_passe'),
+        }),
+    )
