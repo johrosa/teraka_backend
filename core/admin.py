@@ -271,8 +271,8 @@ class RBACStatusView(View):
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'get_role_description', 'created_at', 'updated_at', 'is_active_user']
     list_filter = ['role', 'created_at', 'updated_at', 'user__is_active']
-    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
-    ordering = ['user__username']
+    search_fields = ['user__email', 'user__nom', 'user__prenom']
+    ordering = ['user__email']
     list_per_page = 25
 
     fieldsets = (
@@ -294,7 +294,7 @@ class UserRoleAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         """Optimiser les requêtes avec select_related"""
-        return super().get_queryset(request).select_related('user')
+        return super().get_queryset(request).select_related('user', 'role')
 
     def get_role_description(self, obj):
         """Afficher la description du rôle"""
