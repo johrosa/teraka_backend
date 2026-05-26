@@ -11,11 +11,17 @@ class Command(BaseCommand):
         parser.add_argument('--email', type=str, help='Email de l\'admin', default='admin@teraka.org')
         parser.add_argument('--password', type=str, help='Mot de passe', default='admin')
         parser.add_argument('--nom', type=str, help='Nom', default='Admin')
+        parser.add_argument('--prenom', type=str, help='Prénom', default='')
+        parser.add_argument('--genre', type=str, help='Genre (Masculin/Féminin)', default='Inconnu')
+        parser.add_argument('--tel', type=str, help='Numéro de téléphone', default=None)
 
     def handle(self, *args, **options):
         email = options['email']
         password = options['password']
         nom = options['nom']
+        prenom = options['prenom']
+        genre = options['genre']
+        tel = options['tel']
 
         if User.objects.filter(email=email).exists():
             self.stdout.write(self.style.WARNING(f"L'utilisateur {email} existe déjà. Mise à jour du statut superuser..."))
@@ -23,6 +29,12 @@ class Command(BaseCommand):
             user.is_staff = True
             user.is_superuser = True
             user.is_active = True
+            user.nom = nom
+            if prenom:
+                user.prenom = prenom
+            user.genre = genre
+            if tel:
+                user.num_tel = tel
             user.set_password(password)
             user.save()
         else:
@@ -31,6 +43,9 @@ class Command(BaseCommand):
                 email=email,
                 password=password,
                 nom=nom,
+                prenom=prenom,
+                genre=genre,
+                num_tel=tel,
                 uuid_user=uuid.uuid4()
             )
 

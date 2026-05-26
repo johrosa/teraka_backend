@@ -70,7 +70,7 @@ class Users(AbstractBaseUser, PermissionsMixin):
     mot_de_passe = models.TextField(db_column='mot_de_passe')
     num_tel = models.TextField(unique=True, blank=True, null=True)
     annee_naissance = models.IntegerField(blank=True, null=True)
-    genre = models.TextField(blank=True, null=True)
+    genre = models.TextField(blank=True)  # Database has NOT NULL constraint
     adresse = models.TextField(blank=True, null=True)
     role_name = models.TextField(db_column='role', blank=True, null=True)
     photo = models.TextField(blank=True, null=True)
