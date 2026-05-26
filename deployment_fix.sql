@@ -8,8 +8,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_superuser BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMPTZ DEFAULT now();
 
--- 2. Création des tables de liaison nécessaires pour PermissionsMixin (auth_user_groups / permissions)
--- Note: On utilise 'users' comme nom de table source pour la cohérence
+-- 2. Création des tables de liaison nécessaires pour PermissionsMixin
 CREATE TABLE IF NOT EXISTS users_groups (
     id BIGSERIAL PRIMARY KEY,
     users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
@@ -74,15 +73,20 @@ CREATE TABLE IF NOT EXISTS core_fieldmapping (
     UNIQUE(model_name, field_name)
 );
 
--- 7. Enregistrement forcé des migrations
+-- 7. Enregistrement forcé des migrations (SANS dépendre de l'index UNIQUE)
 INSERT INTO django_migrations (app, name, applied)
-VALUES
+SELECT d.app, d.name, d.applied
+FROM (VALUES
     ('core', '0001_initial', now()),
     ('core', '0002_userrole_auditlog', now()),
     ('core', '0002b_userrole_safe', now()),
     ('core', '0003_merge_0002_userrole_auditlog_0002b_userrole_safe', now()),
     ('core', '0004_role_model', now()),
     ('core', '0005_fieldmapping', now())
-ON CONFLICT (app, name) DO NOTHING;
+) AS d(app, name, applied)
+WHERE NOT EXISTS (
+    SELECT 1 FROM django_migrations m
+    WHERE m.app = d.app AND m.name = d.name
+);
 
 COMMIT;
