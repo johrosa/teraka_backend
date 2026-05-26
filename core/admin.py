@@ -4,8 +4,8 @@ from django.apps import apps
 app_models = apps.get_app_config('core').get_models()
 
 # Exclure les modèles enregistrés manuellement
-from core.models_rbac import UserRole, FieldMapping, Users, Role
-excluded_models = {Users, Role, FieldMapping, UserRole, FieldMapping}
+from core.models_rbac import UserRole, FieldMapping
+excluded_models = {Users, Role, FieldMapping, UserRole}
 
 for model in app_models:
     if model in excluded_models:
@@ -271,8 +271,8 @@ class RBACStatusView(View):
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'get_role_description', 'created_at', 'updated_at', 'is_active_user']
     list_filter = ['role', 'created_at', 'updated_at', 'user__is_active']
-    search_fields = ['user__email', 'user__nom', 'user__prenom']
-    ordering = ['user__email']
+    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
+    ordering = ['user__username']
     list_per_page = 25
 
     fieldsets = (
@@ -294,7 +294,7 @@ class UserRoleAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         """Optimiser les requêtes avec select_related"""
-        return super().get_queryset(request).select_related('user', 'role')
+        return super().get_queryset(request).select_related('user')
 
     def get_role_description(self, obj):
         """Afficher la description du rôle"""
