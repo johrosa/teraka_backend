@@ -26,7 +26,7 @@ psql -U postgres -d teraka -f deployment_fix.sql
 Le système utilise maintenant la table `users` pour l'authentification. Utilisez la commande dédiée pour créer votre premier accès administrateur :
 
 ```bash
-python manage.py create_teraka_admin --email admin@teraka.org --password mon_mot_de_passe --nom "Admin" --prenom "Teraka" --genre "Masculin" --tel "+261340000000"
+python manage.py create_teraka_admin --email admin@teraka.org --password mon_mot_de_passe --nom "Admin" --prenom "Teraka" --genre "Masculin" --tel "+261340000000" --role "Admin_L2" --is_active "True"
 ```
 
 **Options disponibles :**
@@ -36,6 +36,8 @@ python manage.py create_teraka_admin --email admin@teraka.org --password mon_mot
 - `--prenom` : Prénom
 - `--genre` : Genre (Masculin/Féminin). Par défaut "Inconnu" pour satisfaire la contrainte NOT NULL de la base.
 - `--tel` : Numéro de téléphone
+- `--role` : Code du rôle PostgreSQL à assigner (ex: Admin_L2, MRV_L3, Expansion_L2)
+- `--is_active` : Statut du compte (True/False). Défaut: True.
 
 ---
 
