@@ -18,12 +18,12 @@ def home_page_view(request):
             ArbreBaseline, ArbreSuivi, Membre, MembreSuivi,
             PgInfos, PgSuivi
         )
-        
+
         context = {
             'title': 'Teraka Platform - Suivi Agroforestier',
             'site_header': 'Teraka Platform',
             'site_title': 'Teraka',
-            
+
             # Statistiques globales
             'communes_count': Communes.objects.count(),
             'bosquets_total': BosquetBaseline.objects.count(),
@@ -34,7 +34,7 @@ def home_page_view(request):
             'membres_suivi': MembreSuivi.objects.count(),
             'pg_total': PgInfos.objects.count(),
             'pg_suivi': PgSuivi.objects.count(),
-            
+
             # Calculs
             'bosquets_coverage': (
                 (BosquetSuivi.objects.count() / BosquetBaseline.objects.count() * 100)
@@ -51,9 +51,9 @@ def home_page_view(request):
             'is_authenticated': request.user.is_authenticated,
             'is_admin': request.user.is_superuser if request.user.is_authenticated else False,
         }
-        
+
         return render(request, 'home.html', context)
-    
+
     except Exception as e:
         # En cas d'erreur, afficher une page simple
         context = {
@@ -154,10 +154,10 @@ def platform_statistics_view(request):
             BosquetBaseline, BosquetSuivi, ArbreBaseline, ArbreSuivi,
             Membre, MembreSuivi, Communes, PgInfos, PgSuivi
         )
-        
+
         now = timezone.now()
         last_30_days = now - timedelta(days=30)
-        
+
         stats = {
             'timestamp': now.isoformat(),
             'platform': {
@@ -185,9 +185,9 @@ def platform_statistics_view(request):
                 ).count(),
             }
         }
-        
+
         return Response(stats, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -203,28 +203,28 @@ def bosquet_statistics_view(request):
     """
     try:
         from core.models import BosquetBaseline, BosquetSuivi
-        
+
         bosquets = BosquetBaseline.objects.all().values('uuid_bosquet_baseline', 'c_com')
-        
+
         stats_list = []
         for bosquet in bosquets:
             bosquet_id = bosquet['uuid_bosquet_baseline']
             suivi_count = BosquetSuivi.objects.filter(
                 uuid_bosquet_baseline=bosquet_id
             ).count()
-            
+
             stats_list.append({
                 'bosquet_id': str(bosquet_id),
                 'commune': bosquet['c_com'],
                 'suivi_count': suivi_count,
             })
-        
+
         return Response({
             'timestamp': timezone.now().isoformat(),
             'bosquets_count': len(stats_list),
             'data': stats_list
         }, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -243,58 +243,58 @@ def data_validation_view(request):
             BosquetBaseline, BosquetSuivi, ArbreBaseline, ArbreSuivi,
             Membre, MembreSuivi
         )
-        
+
         validation_errors = {
             'timestamp': timezone.now().isoformat(),
             'errors': [],
             'warnings': [],
             'summary': {}
         }
-        
+
         # Vérifier les bosquets sans arbres
         bosquets_sans_arbres = BosquetBaseline.objects.annotate(
             arbre_count=Count('arbrebaseline')
         ).filter(arbre_count=0).count()
-        
+
         if bosquets_sans_arbres > 0:
             validation_errors['warnings'].append({
                 'type': 'bosquets_sans_arbres',
                 'count': bosquets_sans_arbres,
                 'message': f'{bosquets_sans_arbres} bosquets sans arbres enregistrés'
             })
-        
+
         # Vérifier les arbres sans bosquet
         arbres_orphelins = ArbreBaseline.objects.filter(
             uuid_bosquet_baseline__isnull=True
         ).count()
-        
+
         if arbres_orphelins > 0:
             validation_errors['errors'].append({
                 'type': 'arbres_orphelins',
                 'count': arbres_orphelins,
                 'message': f'{arbres_orphelins} arbres sans bosquet'
             })
-        
+
         # Vérifier les membres sans commune
         membres_sans_commune = Membre.objects.filter(
             c_com__isnull=True
         ).count()
-        
+
         if membres_sans_commune > 0:
             validation_errors['warnings'].append({
                 'type': 'membres_sans_commune',
                 'count': membres_sans_commune,
                 'message': f'{membres_sans_commune} membres sans commune'
             })
-        
+
         validation_errors['summary'] = {
             'total_errors': len(validation_errors['errors']),
             'total_warnings': len(validation_errors['warnings']),
             'critical': len(validation_errors['errors']) > 0
         }
-        
+
         return Response(validation_errors, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -310,9 +310,9 @@ def user_activity_log_view(request):
     """
     try:
         from django.contrib.admin.models import LogEntry
-        
+
         last_30_days = timezone.now() - timedelta(days=30)
-        
+
         logs = LogEntry.objects.filter(
             action_time__gte=last_30_days
         ).values(
@@ -321,9 +321,9 @@ def user_activity_log_view(request):
             'action_flag',
             'action_time'
         ).order_by('-action_time')[:100]
-        
+
         action_names = {1: 'CREATE', 2: 'EDIT', 3: 'DELETE'}
-        
+
         logs_list = []
         for log in logs:
             logs_list.append({
@@ -332,13 +332,13 @@ def user_activity_log_view(request):
                 'action': action_names.get(log['action_flag'], 'UNKNOWN'),
                 'timestamp': log['action_time'].isoformat()
             })
-        
+
         return Response({
             'timestamp': timezone.now().isoformat(),
             'logs_count': len(logs_list),
             'data': logs_list
         }, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -355,13 +355,13 @@ def system_health_view(request):
     try:
         from django.db import connection
         import os
-        
+
         health = {
             'timestamp': timezone.now().isoformat(),
             'status': 'healthy',
             'checks': {}
         }
-        
+
         # Vérifier la base de données
         try:
             with connection.cursor() as cursor:
@@ -376,13 +376,13 @@ def system_health_view(request):
                 'message': str(e)
             }
             health['status'] = 'unhealthy'
-        
+
         # Vérifier l'espace disque
         try:
             import shutil
             disk_usage = shutil.disk_usage('/')
             percent_used = (disk_usage.used / disk_usage.total) * 100
-            
+
             health['checks']['disk_space'] = {
                 'status': 'ok' if percent_used < 90 else 'warning',
                 'used_gb': disk_usage.used / (1024**3),
@@ -394,16 +394,16 @@ def system_health_view(request):
                 'status': 'unknown',
                 'message': str(e)
             }
-        
+
         # Vérifier les fichiers statiques
         static_path = os.path.join(os.path.dirname(__file__), '../static')
         health['checks']['static_files'] = {
             'status': 'ok' if os.path.exists(static_path) else 'missing',
             'path': static_path
         }
-        
+
         return Response(health, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e), 'status': 'error'},
@@ -419,27 +419,27 @@ def members_by_region_view(request):
     """
     try:
         from core.models import Membre, Communes
-        
+
         communes = Communes.objects.all().values('c_com', 'nom_commun')
-        
+
         regions_data = []
         for commune in communes:
             members_count = Membre.objects.filter(
                 c_com=commune['c_com']
             ).count()
-            
+
             regions_data.append({
                 'commune_code': commune['c_com'],
                 'commune_name': commune['nom_commun'],
                 'members_count': members_count
             })
-        
+
         return Response({
             'timestamp': timezone.now().isoformat(),
             'total_communes': len(regions_data),
             'data': sorted(regions_data, key=lambda x: x['members_count'], reverse=True)
         }, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -458,18 +458,18 @@ def data_quality_report_view(request):
             BosquetBaseline, BosquetSuivi, ArbreBaseline, ArbreSuivi,
             Membre, MembreSuivi, PgInfos, PgSuivi
         )
-        
+
         report = {
             'timestamp': timezone.now().isoformat(),
             'data_completeness': {},
             'data_freshness': {},
             'quality_score': 0
         }
-        
+
         # Complétude des données
         bosquet_total = BosquetBaseline.objects.count()
         bosquet_with_suivi = BosquetSuivi.objects.count()
-        
+
         report['data_completeness'] = {
             'bosquets': {
                 'baseline': bosquet_total,
@@ -485,11 +485,11 @@ def data_quality_report_view(request):
                 'suivi': MembreSuivi.objects.count(),
             }
         }
-        
+
         # Fraîcheur des données (dernière mise à jour)
         now = timezone.now()
         last_7_days = now - timedelta(days=7)
-        
+
         report['data_freshness'] = {
             'bosquet_suivi_last_7d': BosquetSuivi.objects.filter(
                 updated_at__gte=last_7_days
@@ -498,14 +498,14 @@ def data_quality_report_view(request):
                 updated_at__gte=last_7_days
             ).count(),
         }
-        
+
         # Score de qualité (0-100)
         coverage = report['data_completeness']['bosquets']['coverage_percent']
         freshness_score = min(100, report['data_freshness']['bosquet_suivi_last_7d'] * 10)
         report['quality_score'] = int((coverage + freshness_score) / 2)
-        
+
         return Response(report, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -523,13 +523,13 @@ def data_export_view(request):
     try:
         export_format = request.data.get('format', 'json')
         tables = request.data.get('tables', ['bosquets', 'arbres', 'membres'])
-        
+
         export_data = {
             'timestamp': timezone.now().isoformat(),
             'format': export_format,
             'tables': {}
         }
-        
+
         if 'bosquets' in tables:
             from core.models import BosquetBaseline
             bosquets = list(BosquetBaseline.objects.values())
@@ -537,7 +537,7 @@ def data_export_view(request):
                 'count': len(bosquets),
                 'data': bosquets[:100]  # Limiter à 100 pour la réponse API
             }
-        
+
         if 'arbres' in tables:
             from core.models import ArbreBaseline
             arbres = list(ArbreBaseline.objects.values())
@@ -545,7 +545,7 @@ def data_export_view(request):
                 'count': len(arbres),
                 'data': arbres[:100]
             }
-        
+
         if 'membres' in tables:
             from core.models import Membre
             membres = list(Membre.objects.values())
@@ -553,9 +553,9 @@ def data_export_view(request):
                 'count': len(membres),
                 'data': membres[:100]
             }
-        
+
         return Response(export_data, status=status.HTTP_200_OK)
-    
+
     except Exception as e:
         return Response(
             {'error': str(e)},

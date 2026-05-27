@@ -70,8 +70,8 @@ chmod +x run_servers.sh
 ## 🔧 Options de Lancement
 
 ```bash
-usage: run_servers.py [-h] [--env {development,production}] 
-                      [--django-port DJANGO_PORT] 
+usage: run_servers.py [-h] [--env {development,production}]
+                      [--django-port DJANGO_PORT]
                       [--postgrest-port POSTGREST_PORT]
 
 Options:

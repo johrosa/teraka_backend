@@ -57,7 +57,7 @@
 │  (localStorage, sessionStorage, etc) │
 └──────────────┬───────────────────────┘
                │
-               │ GET /api/data/sites?... 
+               │ GET /api/data/sites?...
                │ Header: Authorization: Bearer <token>
                ▼
 ┌──────────────────────────────────────┐

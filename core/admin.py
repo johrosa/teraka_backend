@@ -1,83 +1,23 @@
 from django.contrib.gis import admin
 from django.apps import apps
-from core.models import (
-    Membre, ArbreBaseline, ArbreSuivi, BosquetBaseline, BosquetSuivi,
-    PgInfos, Communes, EspecesArbres, Users
-)
-from core.models_rbac import UserRole
-
-# --- Configuration spécialisée pour les modèles clés ---
-
-@admin.register(Membre)
-class MembreAdmin(admin.ModelAdmin):
-    list_display = ('nom_prenom_membre', 'c_com', 'statut_membre', 'genre', 'annee_inscription', 'pepinieriste', 'leader')
-    list_filter = ('statut_membre', 'genre', 'pepinieriste', 'leader', 'c_com')
-    search_fields = ('nom_membre', 'prenom_membre', 'cin', 'tel', 'code_pg')
-    list_per_page = 20
-
-@admin.register(ArbreBaseline)
-class ArbreBaselineAdmin(admin.ModelAdmin):
-    list_display = ('uuid_arbre_baseline', 'uuid_espece', 'c_com', 'date_baseline', 'age', 'statut_arbre_gps')
-    list_filter = ('uuid_espece', 'c_com', 'date_baseline')
-    search_fields = ('uuid_arbre_baseline', 'autre_espece')
-
-    def statut_arbre_gps(self, obj):
-        return obj.uuid_arbre_gps.statut_arbre if obj.uuid_arbre_gps else "-"
-    statut_arbre_gps.short_description = "Statut GPS"
-
-@admin.register(ArbreSuivi)
-class ArbreSuiviAdmin(admin.ModelAdmin):
-    list_display = ('uuid_arbre_suivi', 'uuid_espece', 'statut_arbre', 'hauteur', 'circonference', 'date_suivi')
-    list_filter = ('statut_arbre', 'uuid_espece', 'date_suivi', 'c_com')
-    search_fields = ('uuid_arbre_suivi', 'remarque')
-
-@admin.register(BosquetBaseline)
-class BosquetBaselineAdmin(admin.GISModelAdmin):
-    list_display = ('uuid_bosquet_baseline', 'nom_proprietaire', 'c_com', 'surface_boisee_ha', 'date_baseline')
-    list_filter = ('c_com', 'proprietaire', 'conflit_foncier', 'date_baseline')
-    search_fields = ('nom_proprietaire', 'uuid_bosquet_baseline')
-    gis_widget_kwargs = {
-        'attrs': {
-            'default_zoom': 12,
-            'map_width': 800,
-            'map_height': 500,
-        }
-    }
-
-@admin.register(BosquetSuivi)
-class BosquetSuiviAdmin(admin.ModelAdmin):
-    list_display = ('uuid_bosquet_suivi', 'uuid_bosquet_gps', 'taux_survie', 'date_suivi', 'c_com')
-    list_filter = ('c_com', 'date_suivi')
-    search_fields = ('uuid_bosquet_suivi',)
-
-@admin.register(PgInfos)
-class PgInfosAdmin(admin.ModelAdmin):
-    list_display = ('nom_pg', 'code_pg', 'statut_pg', 'c_com', 'annee_inscription')
-    list_filter = ('statut_pg', 'annee_inscription', 'c_com')
-    search_fields = ('nom_pg', 'code_pg', 'representant_pg')
-
-# --- Enregistrement dynamique pour les autres modèles ---
 
 app_models = apps.get_app_config('core').get_models()
 
-# Exclure les modèles déjà enregistrés
-excluded_models = {
-    UserRole, Membre, ArbreBaseline, ArbreSuivi,
-    BosquetBaseline, BosquetSuivi, PgInfos
-}
+# Exclure les modèles enregistrés manuellement
+from core.models_rbac import Users, Role, UserRole, FieldMapping
+excluded_models = {Users, Role, FieldMapping, UserRole}
 
 for model in app_models:
     if model in excluded_models:
         continue
     
     try:
-        # On crée une classe qui hérite de GISModelAdmin pour le support spatial
+        # On crée une classe qui hérite de GISModelAdmin
         @admin.register(model)
         class DynamicGeoAdmin(admin.GISModelAdmin):
-            # Essayer d'afficher les 5 premiers champs pour éviter des listes trop larges
-            list_display = [field.name for field in model._meta.fields[:6]]
+            list_display = [field.name for field in model._meta.fields]
 
-            # Paramètres pour l'affichage de la carte si champ geom présent
+            # Paramètres pour forcer l'affichage de la carte
             gis_widget_kwargs = {
                 'attrs': {
                     'default_zoom': 11,
@@ -89,6 +29,24 @@ for model in app_models:
     except (admin.sites.AlreadyRegistered, TypeError):
         pass
 
+
+@admin.register(FieldMapping)
+class FieldMappingAdmin(admin.ModelAdmin):
+    list_display = ['model_name', 'field_name', 'source_field_name', 'enabled', 'updated_at']
+    list_filter = ['model_name', 'enabled']
+    search_fields = ['model_name', 'field_name', 'source_field_name', 'comment']
+    ordering = ['model_name', 'field_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        (None, {
+            'fields': ('model_name', 'field_name', 'source_field_name', 'enabled', 'comment')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
 
 
 import pandas as pd
@@ -340,18 +298,11 @@ class UserRoleAdmin(admin.ModelAdmin):
 
     def get_role_description(self, obj):
         """Afficher la description du rôle"""
-        descriptions = {
-            'Expansion_L1': 'Création seulement',
-            'Expansion_L2': 'Lecture + Modification',
-            'MRV_L1': 'Lecture seule',
-            'MRV_L2': 'Lecture + Modification',
-            'MRV_L3': 'Lecture + Modification + Validation',
-            'Admin_L1': 'Lecture + Modification',
-            'Admin_L2': 'Lecture + Modification + Suppression',
-        }
-        return descriptions.get(obj.role, obj.role)
+        if obj.role:
+            return obj.role.description
+        return None
     get_role_description.short_description = 'Description du rôle'
-    get_role_description.admin_order_field = 'role'
+    get_role_description.admin_order_field = 'role__code'
 
     def is_active_user(self, obj):
         """Indiquer si l'utilisateur est actif"""
@@ -402,3 +353,31 @@ class UserRoleAdmin(admin.ModelAdmin):
             'all': ('admin/css/userrole_admin.css',)
         }
 
+
+# --- Administration des Utilisateurs ---
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('code', 'description', 'created_at', 'updated_at')
+    search_fields = ('code', 'description')
+    ordering = ('code',)
+
+
+@admin.register(Users)
+class UsersAdmin(BaseUserAdmin):
+    list_display = ('email', 'nom', 'prenom', 'is_staff', 'is_active')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    search_fields = ('email', 'nom', 'prenom')
+    ordering = ('email',)
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Infos', {'fields': ('nom', 'prenom', 'num_tel')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'nom', 'password'),
+        }),
+    )

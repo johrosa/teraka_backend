@@ -139,8 +139,8 @@ RBAC_README.md                  ← Vue rapide (LIRE EN PREMIER!)
 
 ---
 
-**Version:** 1.0  
-**Date:** 2024  
+**Version:** 1.0
+**Date:** 2024
 **Platform:** Teraka Django Backend
 
 ---

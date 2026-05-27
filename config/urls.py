@@ -74,7 +74,7 @@ urlpatterns = [
     path('api/members-by-region/', members_by_region_view, name='api_members_region'),
     path('api/data-quality/', data_quality_report_view, name='api_data_quality'),
     path('api/export/', data_export_view, name='api_export'),
-    
+
     # Toutes les requêtes commençant par api/data/ iront vers PostgREST
     re_path(r'^api/data/(?P<path>.*)$', PostgrestProxyView.as_view(), name='postgrest_proxy'),
 ]

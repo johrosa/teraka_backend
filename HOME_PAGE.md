@@ -32,7 +32,7 @@ Affiche en temps réel:
 🗺️ Communes
    Total: 15
 
-🌳 Bosquets  
+🌳 Bosquets
    Baseline: 245
    Suivi: 189
    Couverture: 77.1%
@@ -295,6 +295,6 @@ window.location.href = '/';
 
 ---
 
-**Version:** 1.0  
-**Date:** 2026-04-20  
+**Version:** 1.0
+**Date:** 2026-04-20
 **Status:** ✅ Production-ready

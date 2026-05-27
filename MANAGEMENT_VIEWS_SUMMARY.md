@@ -338,6 +338,6 @@ R: Les réponses sont limitées à 100 éléments max par requête
 
 ---
 
-**Version:** 1.0  
-**Date:** 2026-04-20  
+**Version:** 1.0
+**Date:** 2026-04-20
 **Status:** ✅ Production-ready

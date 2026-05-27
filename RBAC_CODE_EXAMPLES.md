@@ -135,14 +135,14 @@ async function login(username, password) {
     if (response.ok) {
         const data = await response.json();
         const token = data.access;
-        
+
         // Stocker le token
         localStorage.setItem('token', token);
-        
+
         // Décoder le token pour voir le rôle (optionnel)
         const decoded = JSON.parse(atob(token.split('.')[1]));
         console.log('Rôle:', decoded.role);
-        
+
         return token;
     } else {
         throw new Error('Login failed');
@@ -251,11 +251,11 @@ if (hasPermission('DELETE')) {
 ```javascript
 async function getDataFromPostgrest(table, filters = {}) {
     const token = getToken();
-    
+
     // Construire la query string
     const queryParams = new URLSearchParams();
     queryParams.append('select', '*');
-    
+
     Object.entries(filters).forEach(([key, value]) => {
         queryParams.append(key, `eq.${value}`);
     });
@@ -378,26 +378,26 @@ curl -X DELETE http://localhost:8000/api/data/projects/123 \
 
 <div class="rbac-menu">
     <h2>Gestion RBAC</h2>
-    
+
     <ul>
         <li>
             <a href="{% url 'rbac_hub' %}">
                 🏠 Hub central RBAC
             </a>
         </li>
-        
+
         <li>
             <a href="{% url 'rbac_import' %}">
                 📥 Importer la matrice
             </a>
         </li>
-        
+
         <li>
             <a href="{% url 'rbac_status' %}">
                 📊 Consulter le statut
             </a>
         </li>
-        
+
         <li>
             <a href="{% url 'admin:core_userrole_changelist' %}">
                 👤 Gérer les rôles

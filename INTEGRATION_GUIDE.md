@@ -62,15 +62,15 @@ export const managementApi = {
   getStatistics: () => api.get('/statistics/'),
   getBosquetStats: () => api.get('/bosquet-statistics/'),
   getMembersByRegion: () => api.get('/members-by-region/'),
-  
+
   // Validation & Health
   validateData: () => api.get('/data-validation/'),
   getSystemHealth: () => api.get('/system-health/'),
-  
+
   // Quality & Activity
   getDataQuality: () => api.get('/data-quality/'),
   getUserActivity: () => api.get('/user-activity/'),
-  
+
   // Export
   exportData: (format, tables) => api.post('/export/', {
     format,
@@ -296,7 +296,7 @@ export default function DataValidation() {
       {validation && (
         <div className="validation-results">
           <h3>Résultats de validation</h3>
-          
+
           {validation.summary.critical && (
             <div className="alert alert-danger">
               ⚠️ {validation.summary.total_errors} erreur(s) critique(s) détectée(s)
@@ -487,6 +487,6 @@ docker-compose exec backend python manage.py createsuperuser
 
 ---
 
-**Version:** 1.0  
-**Date:** 2026-04-20  
+**Version:** 1.0
+**Date:** 2026-04-20
 **Auteur:** Teraka Platform Team

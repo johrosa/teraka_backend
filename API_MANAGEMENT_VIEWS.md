@@ -335,7 +335,7 @@ async function loadDashboard() {
       api.get('/system-health/'),
       api.get('/data-quality/')
     ]);
-    
+
     console.log('Platform Statistics:', stats.data);
     console.log('System Health:', health.data);
     console.log('Data Quality:', quality.data);

@@ -1,3 +1,4 @@
+from .models_rbac import Users, Role, UserRole, FieldMapping
 # This is an auto-generated Django model module.
 # You'll have to do the following manually to clean this up:
 #   * Rearrange models' order
@@ -6,6 +7,7 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.contrib.gis.db import models
+from django.conf import settings
 
 
 class AnswerBienFaitAgroforesterieMembreSuivi(models.Model):
@@ -484,8 +486,8 @@ class BosquetBaseline(models.Model):
 
 class BosquetEvenement(models.Model):
     uuid_bosquet_evenement = models.UUIDField(unique=True)
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', blank=True, null=True)
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', related_name='bosquetevenement_uuid_operateur_set', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', related_name='bosquetevenement_uuid_operateur_set', blank=True, null=True)
     operateur_id = models.TextField(blank=True, null=True)
     c_com = models.ForeignKey('Communes', models.DO_NOTHING, db_column='c_com', to_field='c_com', blank=True, null=True)
     uuid_bosquet_gps = models.ForeignKey('BosquetGps', models.DO_NOTHING, db_column='uuid_bosquet_gps', to_field='uuid_bosquet_gps')
@@ -539,8 +541,8 @@ class BosquetGeomHistorique(models.Model):
 class BosquetGps(models.Model):
     uuid_bosquet_gps = models.UUIDField(unique=True)
     uuid_membre = models.ForeignKey('Membre', models.DO_NOTHING, db_column='uuid_membre', to_field='uuid_membre')
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='bosquetgps_uuid_verificateur_set', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='bosquetgps_uuid_verificateur_set', blank=True, null=True)
     uuid_pg = models.ForeignKey('PgInfos', models.DO_NOTHING, db_column='uuid_pg', to_field='uuid_pg')
     operateur_id = models.UUIDField(blank=True, null=True)
     c_com = models.ForeignKey('Communes', models.DO_NOTHING, db_column='c_com', to_field='c_com')
@@ -749,8 +751,8 @@ class LutteNuisibles(models.Model):
 class Membre(models.Model):
     uuid_membre = models.UUIDField(unique=True)
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='membre_uuid_verificateur_set', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='membre_uuid_verificateur_set', blank=True, null=True)
     date_saisie = models.DateTimeField()
     uuid_pg = models.ForeignKey('PgInfos', models.DO_NOTHING, db_column='uuid_pg', to_field='uuid_pg')
     code_pg = models.TextField()
@@ -791,7 +793,7 @@ class Membre(models.Model):
 class MembreInscrit(models.Model):
     uuid_membre = models.UUIDField(unique=True)
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
     date_saisie = models.DateTimeField()
     date_inscription = models.DateTimeField()
     date_qualification = models.DateTimeField(blank=True, null=True)
@@ -831,8 +833,8 @@ class MembreSuivi(models.Model):
     uuid_membre_suivi = models.UUIDField(unique=True)
     operateur_id = models.TextField()
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='membresuivi_uuid_verificateur_set', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='membresuivi_uuid_verificateur_set', blank=True, null=True)
     uuid_membre = models.ForeignKey(Membre, models.DO_NOTHING, db_column='uuid_membre', to_field='uuid_membre')
     date_suivi = models.DateTimeField()
     annee = models.IntegerField()
@@ -940,8 +942,8 @@ class PgGps(models.Model):
 
 class PgInfos(models.Model):
     uuid_pg = models.UUIDField(unique=True)
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='pginfos_uuid_verificateur_set', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='pginfos_uuid_verificateur_set', blank=True, null=True)
     date_saisie = models.DateTimeField()
     date_verification = models.DateTimeField(blank=True, null=True)
     operateur_id = models.TextField(blank=True, null=True)
@@ -983,8 +985,8 @@ class PgNouveauMembre(models.Model):
     operateur_id = models.TextField(blank=True, null=True)
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     uuid_pg_membre_event = models.ForeignKey(PgMembreEvenement, models.DO_NOTHING, db_column='uuid_pg_membre_event', to_field='uuid_membre_event')
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='pgnouveaumembre_uuid_verificateur_set', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', related_name='pgnouveaumembre_uuid_verificateur_set', blank=True, null=True)
     date_saisie = models.DateTimeField()
     uuid_pg = models.ForeignKey(PgInfos, models.DO_NOTHING, db_column='uuid_pg', to_field='uuid_pg')
     code_pg = models.TextField()
@@ -1088,8 +1090,8 @@ class PgSuiviAdmin(models.Model):
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     uuid_suivi_admin = models.UUIDField(unique=True)
     uuid_pg_suivi = models.OneToOneField(PgSuivi, models.DO_NOTHING, db_column='uuid_pg_suivi')
-    uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', blank=True, null=True)
-    uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', related_name='pgsuiviadmin_uuid_operateur_set', blank=True, null=True)
+    uuid_verificateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', blank=True, null=True)
+    uuid_operateur = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', related_name='pgsuiviadmin_uuid_operateur_set', blank=True, null=True)
     modif_compo_pg = models.BooleanField()
     statut_change = models.BooleanField()
     reprensentant_pg = models.TextField(blank=True, null=True)
@@ -1322,27 +1324,6 @@ class TypeDocFoncier(models.Model):
     class Meta:
         managed = False
         db_table = 'type_doc_foncier'
-
-
-class Users(models.Model):
-    uuid_user = models.UUIDField(unique=True)
-    operateur_id = models.TextField(blank=True, null=True)
-    c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com', blank=True, null=True)
-    nom = models.TextField()
-    prenom = models.TextField(blank=True, null=True)
-    email = models.TextField(unique=True)
-    mot_de_passe = models.TextField()
-    num_tel = models.TextField(unique=True, blank=True, null=True)
-    annee_naissance = models.IntegerField(blank=True, null=True)
-    genre = models.TextField()  # This field type is a guess.
-    adresse = models.TextField(blank=True, null=True)
-    role = models.TextField()  # This field type is a guess.
-    photo = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField()
-
-    class Meta:
-        managed = False
-        db_table = 'users'
 
 
 class UtilisationArbres(models.Model):

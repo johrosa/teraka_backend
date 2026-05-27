@@ -28,6 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    '192.168.0.172',
     '[::1]',
     'teraka-api.herokuapp.com',
     'teraka-api.onrender.com'
@@ -56,16 +57,16 @@ JAZZMIN_SETTINGS = {
     "site_title": "Teraka Admin",
     "site_header": "Teraka",
     "site_brand": "Teraka",
-    "site_logo": None,  # Vous pourrez ajouter un logo plus tard dans static
+    "site_logo": None,
     "login_logo": None,
     "welcome_sign": "Bienvenue sur l'administration Teraka",
     "copyright": "Teraka Ltd",
-    "search_model": ["auth.User"],
+    "search_model": ["core.Users"],
     "user_avatar": None,
     "topmenu_links": [
-        {"name": "Accueil", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Accueil", "url": "admin:index", "permissions": ["core.view_users"]},
         {"name": "Support", "url": "https://www.teraka.org/", "new_window": True},
-        {"model": "auth.User"},
+        {"model": "core.Users"},
     ],
     "show_sidebar": True,
     "navigation_expanded": True,
@@ -73,7 +74,7 @@ JAZZMIN_SETTINGS = {
     "hide_models": [],
     "icons": {
         "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
+        "core.Users": "fas fa-user",
         "auth.Group": "fas fa-users",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
@@ -83,7 +84,7 @@ JAZZMIN_SETTINGS = {
     "custom_js": None,
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {"auth.user": "collapsible_list", "auth.group": "vertical_tabs"},
+    "changeform_format_overrides": {"core.Users": "collapsible_list", "auth.group": "vertical_tabs"},
     "default_theme_mode": "auto",
 }
 
@@ -134,6 +135,11 @@ SIMPLE_JWT = {
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
 }
 
+# Authentication redirects
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/admin/login/'
+
 # Session timeout configuration
 # SESSION_SAVE_EVERY_REQUEST = True ensures the session (and timeout) is
 # extended on every interaction with the backend (sliding session).
@@ -141,6 +147,13 @@ SIMPLE_JWT = {
 SESSION_COOKIE_AGE = 3600  # 60 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+AUTH_USER_MODEL = 'core.Users'
+
+AUTHENTICATION_BACKENDS = [
+    'core.auth_backend.UsersTableBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', # Indispensable pour l'API

@@ -86,14 +86,16 @@ python manage.py runserver
 4. [ ] Relancer le serveur Django
 5. [ ] Effectuer les tests ci-dessus
 
-#### Sur le serveur de production:
-1. [ ] Faire une sauvegarde de la base de données
+#### Sur le serveur de production (BD préexistante):
+1. [ ] Faire une sauvegarde complète de la base de données
 2. [ ] Pull les changements du repo Git
-3. [ ] Vérifier les permissions des fichiers
-4. [ ] Lancer `python manage.py collectstatic`
-5. [ ] Redémarrer le service Django/Gunicorn
-6. [ ] Tester les URLs en accès distant
-7. [ ] Vérifier les logs pour erreurs
+3. [ ] Si les migrations échouent avec `NodeNotFoundError`, exécuter :
+       `psql -U postgres -d teraka -f deployment_fix.sql`
+4. [ ] Lancer `python manage.py migrate`
+5. [ ] Lancer `python manage.py collectstatic`
+6. [ ] Redémarrer le service Django/Gunicorn
+7. [ ] Tester l'accès à l'Admin et aux Rôles
+8. [ ] Vérifier les logs pour toute erreur de schéma
 
 ### 🔍 Vérifications post-déploiement
 

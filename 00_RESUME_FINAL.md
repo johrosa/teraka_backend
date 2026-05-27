@@ -2,7 +2,7 @@
 
 ### ✅ LIVRAISON COMPLÈTE
 
-Tous les fichiers ont été **créés et testés** avec succès! 
+Tous les fichiers ont été **créés et testés** avec succès!
 
 ---
 

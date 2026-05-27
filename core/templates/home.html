@@ -436,13 +436,13 @@
                 <li><a href="#features">Fonctionnalités</a></li>
                 {% if is_authenticated %}
                     {% if is_admin %}
-                        <li><a href="/admin/" class="btn btn-secondary">Admin Panel</a></li>
+                        <li><a href="{% url 'admin:index' %}" class="btn btn-secondary">Admin Panel</a></li>
                     {% else %}
-                        <li><a href="/admin/" class="btn btn-secondary">Dashboard</a></li>
+                        <li><a href="{% url 'teraka_dashboard' %}" class="btn btn-secondary">Dashboard</a></li>
                     {% endif %}
-                    <li><a href="/admin/logout/" class="btn btn-outline">Déconnexion</a></li>
+                    <li><a href="{% url 'admin:logout' %}" class="btn btn-outline">Déconnexion</a></li>
                 {% else %}
-                    <li><a href="/admin/login/" class="btn btn-primary">Connexion</a></li>
+                    <li><a href="{% url 'admin:login' %}" class="btn btn-primary">Connexion</a></li>
                 {% endif %}
             </ul>
         </nav>
@@ -459,13 +459,13 @@
             <div class="hero-buttons">
                 {% if is_authenticated %}
                     {% if is_admin %}
-                        <a href="/admin/" class="btn btn-outline">Accéder à l'Administration</a>
-                        <a href="/api/statistics/" class="btn btn-outline">API Statistiques</a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-outline">Accéder à l'Administration</a>
+                        <a href="{% url 'api_statistics' %}" class="btn btn-outline">API Statistiques</a>
                     {% else %}
-                        <a href="/admin/" class="btn btn-outline">Mon Dashboard</a>
+                        <a href="{% url 'teraka_dashboard' %}" class="btn btn-outline">Mon Dashboard</a>
                     {% endif %}
                 {% else %}
-                    <a href="/admin/login/" class="btn btn-outline">Se Connecter</a>
+                    <a href="{% url 'admin:login' %}" class="btn btn-outline">Se Connecter</a>
                     <a href="#features" class="btn btn-outline">En savoir plus</a>
                 {% endif %}
             </div>
@@ -597,7 +597,7 @@
                         Expansion L1/L2, MRV L1/L2/L3, Admin L1/L2
                     </p>
                     {% if is_admin %}
-                        <a href="/admin/core/userrole/" class="btn btn-primary">Gérer les Rôles</a>
+                        <a href="{% url 'admin:core_userrole_changelist' %}" class="btn btn-primary">Gérer les Rôles</a>
                     {% endif %}
                 </div>
 
@@ -623,7 +623,7 @@
                         et analyse spatiale PostGIS
                     </p>
                     {% if is_authenticated %}
-                        <a href="/admin/core/" class="btn btn-primary">Voir les Données</a>
+                        <a href="{% url 'admin:app_list' app_label='core' %}" class="btn btn-primary">Voir les Données</a>
                     {% endif %}
                 </div>
 
@@ -649,9 +649,9 @@
                         les permissions et les données de la plateforme
                     </p>
                     {% if is_authenticated %}
-                        <a href="/admin/" class="btn btn-primary">Accéder à l'Admin</a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-primary">Accéder à l'Admin</a>
                     {% else %}
-                        <a href="/admin/login/" class="btn btn-primary">Se Connecter</a>
+                        <a href="{% url 'admin:login' %}" class="btn btn-primary">Se Connecter</a>
                     {% endif %}
                 </div>
 
@@ -680,7 +680,7 @@
         <div class="info-box" style="margin-top: 3rem;">
             <p>
                 <strong>Vous n'êtes pas connecté.</strong> 
-                <a href="/admin/login/">Connectez-vous</a> pour accéder aux fonctionnalités de la plateforme.
+                <a href="{% url 'admin:login' %}">Connectez-vous</a> pour accéder aux fonctionnalités de la plateforme.
             </p>
         </div>
         {% endif %}
@@ -692,8 +692,8 @@
             🪴 <strong>Teraka Platform</strong> - Système de Suivi Agroforestier Décentralisé
         </p>
         <p style="margin-top: 1rem; font-size: 0.9em;">
-            <a href="/admin/">Administration</a> | 
-            <a href="/api/statistics/">API</a> | 
+            <a href="{% url 'admin:index' %}">Administration</a> |
+            <a href="{% url 'api_statistics' %}">API</a> |
             <a href="#">Aide</a> | 
             <a href="#">Contact</a>
         </p>
