@@ -67,12 +67,12 @@ class Users(AbstractBaseUser, PermissionsMixin):
     nom = models.TextField()
     prenom = models.TextField(blank=True, null=True)
     email = models.EmailField(unique=True)
-    mot_de_passe = models.TextField(db_column='mot_de_passe')
+    password = models.TextField(db_column='mot_de_passe')
     num_tel = models.TextField(unique=True, blank=True, null=True)
     annee_naissance = models.IntegerField(blank=True, null=True)
     genre = models.TextField(blank=True)  # Database has NOT NULL constraint
     adresse = models.TextField(blank=True, null=True)
-    role_name = models.TextField(db_column='role', blank=True, null=True)
+    role_name = models.TextField(db_column='role', blank=True)  # Database has NOT NULL constraint
     photo = models.TextField(blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
@@ -92,14 +92,6 @@ class Users(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.email} ({self.nom})"
-
-    @property
-    def password(self):
-        return self.mot_de_passe
-
-    @password.setter
-    def password(self, value):
-        self.mot_de_passe = value
 
 
 class UserRole(models.Model):

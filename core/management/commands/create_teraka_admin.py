@@ -41,6 +41,13 @@ class Command(BaseCommand):
             user.genre = genre
             if tel:
                 user.num_tel = tel
+
+            # Mise à jour du rôle legacy (colonne 'role')
+            if role_code:
+                user.role_name = role_code
+            elif not user.role_name:
+                user.role_name = 'Admin_L2' # Défaut pour éviter NOT NULL
+
             user.set_password(password)
             user.save()
         else:
@@ -53,10 +60,11 @@ class Command(BaseCommand):
                 genre=genre,
                 num_tel=tel,
                 is_active=is_active,
+                role_name=role_code or 'Admin_L2', # Remplissage de la colonne legacy
                 uuid_user=uuid.uuid4()
             )
 
-        # Gestion du rôle
+        # Gestion du rôle (Relation UserRole pour le nouveau système)
         if role_code:
             Role.ensure_default_roles()
             try:

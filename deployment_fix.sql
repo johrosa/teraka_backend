@@ -9,14 +9,15 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMPTZ DEFAULT now();
 
 -- 2. Création des tables de liaison nécessaires pour PermissionsMixin
-CREATE TABLE IF NOT EXISTS users_groups (
+-- Django s'attend par défaut à core_users_groups/permissions pour le modèle Users de l'app core
+CREATE TABLE IF NOT EXISTS core_users_groups (
     id BIGSERIAL PRIMARY KEY,
     users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES auth_group(id) ON DELETE CASCADE,
     UNIQUE(users_id, group_id)
 );
 
-CREATE TABLE IF NOT EXISTS users_user_permissions (
+CREATE TABLE IF NOT EXISTS core_users_user_permissions (
     id BIGSERIAL PRIMARY KEY,
     users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
     permission_id INTEGER NOT NULL REFERENCES auth_permission(id) ON DELETE CASCADE,

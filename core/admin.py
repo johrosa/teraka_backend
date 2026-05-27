@@ -357,6 +357,13 @@ class UserRoleAdmin(admin.ModelAdmin):
 # --- Administration des Utilisateurs ---
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('code', 'description', 'created_at', 'updated_at')
+    search_fields = ('code', 'description')
+    ordering = ('code',)
+
+
 @admin.register(Users)
 class UsersAdmin(BaseUserAdmin):
     list_display = ('email', 'nom', 'prenom', 'is_staff', 'is_active')
@@ -364,13 +371,13 @@ class UsersAdmin(BaseUserAdmin):
     search_fields = ('email', 'nom', 'prenom')
     ordering = ('email',)
     fieldsets = (
-        (None, {'fields': ('email', 'mot_de_passe')}),
+        (None, {'fields': ('email', 'password')}),
         ('Infos', {'fields': ('nom', 'prenom', 'num_tel')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'nom', 'mot_de_passe'),
+            'fields': ('email', 'nom', 'password'),
         }),
     )
