@@ -18,10 +18,10 @@ POSTGREST_URL = 'http://localhost:3000'
 
 # Utilisateurs de test
 TEST_USERS = [
-    {'username': 'expansion_l1', 'password': 'test123', 'expected_role': 'Expansion_L1'},
-    {'username': 'expansion_l2', 'password': 'test123', 'expected_role': 'Expansion_L2'},
-    {'username': 'mrv_l1', 'password': 'test123', 'expected_role': 'MRV_L1'},
-    {'username': 'admin_l1', 'password': 'test123', 'expected_role': 'Admin_L1'},
+    {'email': 'expansion_l1@teraka.org', 'password': 'test123', 'expected_role': 'Expansion_L1'},
+    {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'expected_role': 'Expansion_L2'},
+    {'email': 'mrv_l1@teraka.org', 'password': 'test123', 'expected_role': 'MRV_L1'},
+    {'email': 'admin_l1@teraka.org', 'password': 'test123', 'expected_role': 'Admin_L1'},
 ]
 
 # Couleurs ANSI
@@ -64,17 +64,17 @@ def test_jwt_generation():
     results = []
     
     for user in TEST_USERS:
-        username = user['username']
+        email = user['email']
         password = user['password']
         expected_role = user['expected_role']
         
-        print(f"{C.YELLOW}Utilisateur:{C.END} {username}")
+        print(f"{C.YELLOW}Utilisateur:{C.END} {email}")
         
         try:
             # Login
             response = requests.post(
                 TOKEN_ENDPOINT,
-                json={'username': username, 'password': password},
+                json={'email': email, 'password': password},
                 timeout=5
             )
             
@@ -148,17 +148,17 @@ def test_postgrest_access():
     print_info("Note: PostgREST doit être accessible sur http://localhost:3000")
     
     for user in TEST_USERS[:2]:  # Tester les 2 premiers utilisateurs
-        username = user['username']
+        email = user['email']
         password = user['password']
         role = user['expected_role']
         
-        print(f"{C.YELLOW}Utilisateur:{C.END} {username} (Rôle: {role})")
+        print(f"{C.YELLOW}Utilisateur:{C.END} {email} (Rôle: {role})")
         
         try:
             # Obtenir le token
             response = requests.post(
                 TOKEN_ENDPOINT,
-                json={'username': username, 'password': password},
+                json={'email': email, 'password': password},
                 timeout=5
             )
             
