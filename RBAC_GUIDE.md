@@ -133,21 +133,23 @@ Le système RBAC utilise les rôles PostgreSQL suivants avec une hiérarchie par
 
 | Rôle | Niveau | Description |
 |------|--------|-------------|
-| **Rôles Hiérarchiques** | | |
-| `Admin_L1` | 1 | Administrateur - Niveau 1 (Junior) |
-| `Admin_L2` | 2 | Administrateur - Niveau 2 (Senior) |
-| `Expansion_L1` | 1 | Expansion - Niveau 1 (Collecte) |
-| `Expansion_L2` | 2 | Expansion - Niveau 2 (Gestion) |
+| **CATÉGORIE ADMIN** | | |
+| `Admin_L1` | 1 | Administrateur - Niveau 1 (Opérationnel) |
+| `Admin_L2` | 2 | Administrateur - Niveau 2 (Superviseur) |
+| `ADMIN` | 3 | Administrateur - Niveau 3 (Global) |
+| **CATÉGORIE MRV** | | |
 | `MRV_L1` | 1 | MRV - Niveau 1 (Lecture) |
 | `MRV_L2` | 2 | MRV - Niveau 2 (Modification) |
 | `MRV_L3` | 3 | MRV - Niveau 3 (Validation) |
-| **Rôles Spécialisés** | | |
-| `ADMIN` | 3 | Administrateur Global (Full Access) |
-| `MRV` | 1 | MRV - Niveau de base |
-| `EXPANSION` | 1 | Expansion - Niveau de base |
-| `OP_SAISIE` | 1 | Opérateur de Saisie |
-| `FINANCE` | 2 | Gestion Financière |
-| `QUANTIFICATEUR` | 1 | Quantification et Mesure |
+| `MRV` | 1 | MRV - Base (Niveau 1) |
+| **CATÉGORIE EXPANSION** | | |
+| `Expansion_L1` | 1 | Expansion - Niveau 1 (Collecte) |
+| `Expansion_L2` | 2 | Expansion - Niveau 2 (Gestion) |
+| `EXPANSION` | 3 | Expansion - Niveau 3 (Coordination) |
+| **AUTRES RÔLES** | | |
+| `FINANCE` | 2 | Finance (Niveau 2) |
+| `OP_SAISIE` | 1 | Opérateur de Saisie (Niveau 1) |
+| `QUANTIFICATEUR` | 1 | Quantificateur (Niveau 1) |
 
 ---
 
