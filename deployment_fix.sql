@@ -8,7 +8,57 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_superuser BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMPTZ DEFAULT now();
 
--- 2. Création des tables de liaison nécessaires pour PermissionsMixin
+-- 2. Migration des colonnes user_id vers UUID (Fix pour l'erreur "subquery in transform expression")
+-- Cette section remplace les ALTER TABLE directs qui échouent sur certaines versions de PostgreSQL
+DO $$
+BEGIN
+    -- Fix pour django_admin_log
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='django_admin_log' AND column_name='user_id'
+        AND data_type = 'integer'
+    ) THEN
+        -- On supprime la FK si elle existe pour pouvoir changer le type
+        ALTER TABLE django_admin_log DROP CONSTRAINT IF EXISTS django_admin_log_user_id_c564eba6_fk_auth_user_id;
+
+        ALTER TABLE django_admin_log ADD COLUMN IF NOT EXISTS user_id_uuid UUID;
+        UPDATE django_admin_log dal SET user_id_uuid = u.uuid_user
+        FROM users u WHERE dal.user_id = u.id;
+        ALTER TABLE django_admin_log DROP COLUMN user_id;
+        ALTER TABLE django_admin_log RENAME COLUMN user_id_uuid TO user_id;
+        ALTER TABLE django_admin_log ALTER COLUMN user_id SET NOT NULL;
+
+        -- On recrée une FK pointant vers la nouvelle PK (uuid_user) de la table users
+        ALTER TABLE django_admin_log ADD CONSTRAINT django_admin_log_user_id_fk_users
+        FOREIGN KEY (user_id) REFERENCES users(uuid_user) ON DELETE CASCADE;
+        CREATE INDEX IF NOT EXISTS django_admin_log_user_id_idx ON django_admin_log(user_id);
+    END IF;
+
+    -- Fix pour core_userrole
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='core_userrole' AND column_name='user_id'
+        AND data_type = 'integer'
+    ) THEN
+        ALTER TABLE core_userrole DROP CONSTRAINT IF EXISTS core_userrole_user_id_f34586d1_fk_users_id;
+
+        ALTER TABLE core_userrole ADD COLUMN IF NOT EXISTS user_id_uuid UUID;
+        UPDATE core_userrole ur SET user_id_uuid = u.uuid_user
+        FROM users u WHERE ur.user_id = u.id;
+        ALTER TABLE core_userrole DROP COLUMN user_id;
+        ALTER TABLE core_userrole RENAME COLUMN user_id_uuid TO user_id;
+        ALTER TABLE core_userrole ALTER COLUMN user_id SET NOT NULL;
+
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='core_userrole_user_id_key') THEN
+            ALTER TABLE core_userrole ADD CONSTRAINT core_userrole_user_id_key UNIQUE(user_id);
+        END IF;
+
+        ALTER TABLE core_userrole ADD CONSTRAINT core_userrole_user_id_fk_users
+        FOREIGN KEY (user_id) REFERENCES users(uuid_user) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+-- 3. Création des tables de liaison nécessaires pour PermissionsMixin
 -- Django s'attend par défaut à core_users_groups/permissions pour le modèle Users de l'app core
 CREATE TABLE IF NOT EXISTS core_users_groups (
     id BIGSERIAL PRIMARY KEY,
@@ -24,7 +74,7 @@ CREATE TABLE IF NOT EXISTS core_users_user_permissions (
     UNIQUE(users_id, permission_id)
 );
 
--- 3. Création sécurisée de la table Role
+-- 4. Création sécurisée de la table Role
 CREATE TABLE IF NOT EXISTS core_role (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(64) UNIQUE NOT NULL,
@@ -33,7 +83,7 @@ CREATE TABLE IF NOT EXISTS core_role (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Initialisation des rôles par défaut
+-- 5. Initialisation des rôles par défaut
 INSERT INTO core_role (code, description)
 VALUES
     ('Expansion_L1', 'Expansion L1 - Création seulement'),
@@ -45,7 +95,7 @@ VALUES
     ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression')
 ON CONFLICT (code) DO NOTHING;
 
--- 5. Mise à jour de core_userrole
+-- 6. Mise à jour de core_userrole (Remplacement de role par role_id)
 DO $$
 BEGIN
     IF EXISTS (
@@ -61,7 +111,7 @@ BEGIN
     END IF;
 END $$;
 
--- 6. Création de FieldMapping
+-- 7. Création de FieldMapping
 CREATE TABLE IF NOT EXISTS core_fieldmapping (
     id BIGSERIAL PRIMARY KEY,
     model_name VARCHAR(128) NOT NULL,
@@ -74,7 +124,7 @@ CREATE TABLE IF NOT EXISTS core_fieldmapping (
     UNIQUE(model_name, field_name)
 );
 
--- 7. Enregistrement forcé des migrations (SANS dépendre de l'index UNIQUE)
+-- 8. Enregistrement forcé des migrations
 INSERT INTO django_migrations (app, name, applied)
 SELECT d.app, d.name, d.applied
 FROM (VALUES
