@@ -13,6 +13,16 @@ git pull origin feature/stabilization
 ---
 
 ## 🗄️ Étape 2 : Alignement de la Base de Données (SQL)
+
+### 2.1 Restauration de la Base
+Le fichier `bd_teraka.sql` est un dump au format personnalisé PostgreSQL 17 (version 1.16). Pour le restaurer, vous devez utiliser `pg_restore` d'un client PostgreSQL 17 ou supérieur.
+
+```bash
+createdb -U postgres teraka
+pg_restore -U postgres -d teraka bd_teraka.sql
+```
+
+### 2.2 Alignement du Schéma Django
 Si vous travaillez avec une base de données préexistante (table `users` déjà là), vous devez exécuter le script de déploiement. Ce script ajoute les colonnes nécessaires pour Django Auth (`is_staff`, `is_superuser`, etc.) et synchronise le graphe de migration.
 
 **Commande à exécuter :**
@@ -20,9 +30,45 @@ Si vous travaillez avec une base de données préexistante (table `users` déjà
 psql -U postgres -d teraka -f deployment_fix.sql
 ```
 
+### 2.3 Configuration de PostgREST
+PostgREST nécessite un rôle `authenticator` pour agir en tant que proxy pour les autres rôles.
+
+```sql
+-- Création des rôles de base
+CREATE ROLE authenticator WITH NOINHERIT LOGIN PASSWORD 'votre_mot_de_passe';
+CREATE ROLE anon NOLOGIN;
+
+-- Autorisation pour PostgREST de changer de rôle
+GRANT anon TO authenticator;
+GRANT "Expansion_L1" TO authenticator;
+GRANT "Expansion_L2" TO authenticator;
+GRANT "MRV_L1" TO authenticator;
+GRANT "MRV_L2" TO authenticator;
+GRANT "MRV_L3" TO authenticator;
+GRANT "Admin_L1" TO authenticator;
+GRANT "Admin_L2" TO authenticator;
+
+-- Permissions de base sur le schéma public
+GRANT USAGE ON SCHEMA public TO anon, "Expansion_L1", "Expansion_L2", "MRV_L1", "MRV_L2", "MRV_L3", "Admin_L1", "Admin_L2";
+```
+
+Assurez-vous que `api/postgrest.conf` pointe vers la bonne base de données et utilise le rôle `authenticator`.
+
 ---
 
-## 🔑 Étape 3 : Création du Super-Utilisateur
+## 🔑 Étape 3 : Configuration Django & Création du Super-Utilisateur
+
+### 3.1 Configuration JWT
+Le système utilise un modèle utilisateur personnalisé avec un UUID (`uuid_user`). Assurez-vous que `config/settings.py` contient la configuration suivante pour SimpleJWT :
+
+```python
+SIMPLE_JWT = {
+    # ... autres paramètres ...
+    'USER_ID_FIELD': 'uuid_user',
+}
+```
+
+### 3.2 Création du Super-Utilisateur
 Le système utilise maintenant la table `users` pour l'authentification. Utilisez la commande dédiée pour créer votre premier accès administrateur :
 
 ```bash
