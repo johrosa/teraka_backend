@@ -40,16 +40,22 @@ CREATE ROLE anon NOLOGIN;
 
 -- Autorisation pour PostgREST de changer de rôle
 GRANT anon TO authenticator;
+GRANT "ADMIN" TO authenticator;
+GRANT "Admin_L1" TO authenticator;
+GRANT "Admin_L2" TO authenticator;
+GRANT "EXPANSION" TO authenticator;
 GRANT "Expansion_L1" TO authenticator;
 GRANT "Expansion_L2" TO authenticator;
+GRANT "MRV" TO authenticator;
 GRANT "MRV_L1" TO authenticator;
 GRANT "MRV_L2" TO authenticator;
 GRANT "MRV_L3" TO authenticator;
-GRANT "Admin_L1" TO authenticator;
-GRANT "Admin_L2" TO authenticator;
+GRANT "FINANCE" TO authenticator;
+GRANT "OP_SAISIE" TO authenticator;
+GRANT "QUANTIFICATEUR" TO authenticator;
 
 -- Permissions de base sur le schéma public
-GRANT USAGE ON SCHEMA public TO anon, "Expansion_L1", "Expansion_L2", "MRV_L1", "MRV_L2", "MRV_L3", "Admin_L1", "Admin_L2";
+GRANT USAGE ON SCHEMA public TO anon, "ADMIN", "Admin_L1", "Admin_L2", "EXPANSION", "Expansion_L1", "Expansion_L2", "MRV", "MRV_L1", "MRV_L2", "MRV_L3", "FINANCE", "OP_SAISIE", "QUANTIFICATEUR";
 ```
 
 Assurez-vous que `api/postgrest.conf` pointe vers la bonne base de données et utilise le rôle `authenticator`.

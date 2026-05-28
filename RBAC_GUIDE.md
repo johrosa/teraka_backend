@@ -129,17 +129,23 @@ Le hub central est le point d'accès unique pour gérer toutes les permissions R
 
 ## 🔒 Rôles PostgreSQL configurés
 
-Le système RBAC utilise les rôles PostgreSQL suivants:
+Le système RBAC utilise les rôles PostgreSQL suivants avec une hiérarchie par niveau :
 
-| Rôle | Niveau | Permissions typiques |
-|------|--------|---------------------|
-| `Expansion_L1` | 1 | Création seulement (C) |
-| `Expansion_L2` | 2 | Lecture + Modification (RU) |
-| `MRV_L1` | 1 | Lecture seule (R) |
-| `MRV_L2` | 2 | Lecture + Modification (RU) |
-| `MRV_L3` | 3 | Lecture + Modification + Suppression (RUD) |
-| `Admin_L1` | 1 | Lecture + Modification (RU) |
-| `Admin_L2` | 2 | Lecture + Modification + Suppression (RUD) |
+| Rôle | Niveau | Description |
+|------|--------|-------------|
+| `ADMIN` | 3 | Administrateur Global |
+| `Admin_L1` | 1 | Admin L1 - Lecture + Modification |
+| `Admin_L2` | 2 | Admin L2 - Lecture + Modification + Suppression |
+| `EXPANSION` | 1 | Expansion - Général |
+| `Expansion_L1` | 1 | Expansion L1 - Création seulement |
+| `Expansion_L2` | 2 | Expansion L2 - Lecture + Modification |
+| `MRV` | 1 | MRV - Général |
+| `MRV_L1` | 1 | MRV L1 - Lecture seule |
+| `MRV_L2` | 2 | MRV L2 - Lecture + Modification |
+| `MRV_L3` | 3 | MRV L3 - Lecture + Modification + Validation |
+| `FINANCE` | 2 | Finance |
+| `OP_SAISIE` | 1 | Opérateur de Saisie |
+| `QUANTIFICATEUR` | 1 | Quantificateur |
 
 ---
 
@@ -149,11 +155,12 @@ Le système RBAC utilise les rôles PostgreSQL suivants:
 
 1. **Utilisateur se connecte via `/api/login/`**
    - Identifiants: username/password
-   - Reçoit un token JWT incluant son rôle PostgreSQL
+   - Reçoit un token JWT incluant son rôle PostgreSQL et son **niveau (level)**
 
 2. **Requête à `/api/data/*` avec le token**
-   - PostgREST exécute avec les permissions du rôle
-   - Accès refusé (403) si permissions insuffisantes
+   - PostgREST exécute avec les permissions du rôle.
+   - Les claims `role` et `level` sont disponibles dans la session PostgreSQL.
+   - Accès refusé (403) si permissions insuffisantes.
 
 3. **Politique de sécurité au niveau base de données**
    - Aucune données sensibles exposées au-delà des droits du rôle

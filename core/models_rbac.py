@@ -7,40 +7,56 @@ from django.utils import timezone
 
 
 DEFAULT_POSTGRES_ROLES = [
-    ('Expansion_L1', 'Expansion L1 - Création seulement'),
-    ('Expansion_L2', 'Expansion L2 - Lecture + Modification'),
-    ('MRV_L1', 'MRV L1 - Lecture seule'),
-    ('MRV_L2', 'MRV L2 - Lecture + Modification'),
-    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation'),
-    ('Admin_L1', 'Admin L1 - Lecture + Modification'),
-    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression'),
+    ('ADMIN', 'Administrateur Global', 3),
+    ('Admin_L1', 'Admin L1 - Lecture + Modification', 1),
+    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression', 2),
+    ('EXPANSION', 'Expansion - Général', 1),
+    ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
+    ('Expansion_L2', 'Expansion L2 - Lecture + Modification', 2),
+    ('MRV', 'MRV - Général', 1),
+    ('MRV_L1', 'MRV L1 - Lecture seule', 1),
+    ('MRV_L2', 'MRV L2 - Lecture + Modification', 2),
+    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation', 3),
+    ('FINANCE', 'Finance', 2),
+    ('OP_SAISIE', 'Opérateur de Saisie', 1),
+    ('QUANTIFICATEUR', 'Quantificateur', 1),
 ]
 
 
 class Role(models.Model):
     code = models.CharField(max_length=64, unique=True, verbose_name='Code du rôle')
     description = models.CharField(max_length=255, verbose_name='Description du rôle')
+    level = models.IntegerField(default=1, verbose_name='Niveau du rôle')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Rôle PostgreSQL'
         verbose_name_plural = 'Rôles PostgreSQL'
-        ordering = ['code']
+        ordering = ['level', 'code']
 
     def __str__(self):
-        return f"{self.code} - {self.description}"
+        return f"{self.code} (L{self.level}) - {self.description}"
 
     @classmethod
     def ensure_default_roles(cls):
-        for code, description in DEFAULT_POSTGRES_ROLES:
-            cls.objects.get_or_create(code=code, defaults={'description': description})
+        for code, description, level in DEFAULT_POSTGRES_ROLES:
+            role, created = cls.objects.get_or_create(
+                code=code,
+                defaults={'description': description, 'level': level}
+            )
+            if not created and role.level != level:
+                role.level = level
+                role.save()
 
 
 class UsersManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("L'adresse email est obligatoire")
+        import uuid
+        if 'uuid_user' not in extra_fields:
+            extra_fields['uuid_user'] = uuid.uuid4()
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         if password:

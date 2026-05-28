@@ -61,7 +61,8 @@ def create_test_users():
             user = User.objects.create_user(
                 email=f'{username}@teraka.org',
                 nom=username,
-                password='testpass123', genre='H'
+                password='testpass123', genre='H',
+                role_name=display_role
             )
             print(f"  ✅ {username:<20} (rôle: {display_role:<15}) - Créé")
         

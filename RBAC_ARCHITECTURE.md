@@ -46,8 +46,8 @@
                ▼
 ┌──────────────────────────────────────┐
 │  JWT Token générée                   │
-│  Include: user_id + role PostgreSQL  │
-│  Exemple: {..., "role": "MRV_L2"}    │
+│  Include: user_id, role, level       │
+│  Exemple: {"role": "MRV_L2", "level": 2}│
 └──────────────┬───────────────────────┘
                │
                │ Token retourné au client
@@ -279,6 +279,13 @@ Import petite matrice       < 2s           ✓
 Afficher statut RBAC        < 1s           ✓
 Requête PostgREST standard  < 200ms        ✓
 Authentification JWT         < 100ms        ✓
+
+### Hiérarchie des Rôles (Niveaux)
+
+Le système utilise désormais un champ `level` pour définir une hiérarchie :
+- **Niveau 1** : Accès opérationnel de base (ex: OP_SAISIE, Expansion_L1, MRV_L1)
+- **Niveau 2** : Accès supervisé / gestion (ex: Expansion_L2, MRV_L2, FINANCE)
+- **Niveau 3** : Accès décisionnel / administration (ex: MRV_L3, ADMIN)
 ```
 
 ---

@@ -150,7 +150,8 @@ class RBACImportView(View):
 
             print(f"[OK] DataFrame charge: {len(df)} lignes, colonnes: {df.columns.tolist()}")
 
-            roles = ["Expansion_L1", "Expansion_L2", "MRV_L1", "MRV_L2", "MRV_L3", "Admin_L1", "Admin_L2"]
+            from core.models_rbac import DEFAULT_POSTGRES_ROLES
+            roles = [r[0] for r in DEFAULT_POSTGRES_ROLES]
 
             with connection.cursor() as cursor:
                 # ÉTAPE 0 : CRÉATION AUTOMATIQUE DES RÔLES
@@ -359,9 +360,10 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
-    list_display = ('code', 'description', 'created_at', 'updated_at')
+    list_display = ('code', 'level', 'description', 'created_at', 'updated_at')
+    list_filter = ('level',)
     search_fields = ('code', 'description')
-    ordering = ('code',)
+    ordering = ('level', 'code')
 
 
 @admin.register(Users)
