@@ -9,7 +9,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMPTZ DEFAULT now();
 
 -- 2. Migration des colonnes user_id vers UUID (Fix pour l'erreur "subquery in transform expression")
--- Cette section remplace les ALTER TABLE directs qui échouent sur certaines versions de PostgreSQL
 DO $$
 BEGIN
     -- Fix pour django_admin_log
@@ -18,7 +17,6 @@ BEGIN
         WHERE table_name='django_admin_log' AND column_name='user_id'
         AND data_type = 'integer'
     ) THEN
-        -- On supprime la FK si elle existe pour pouvoir changer le type
         ALTER TABLE django_admin_log DROP CONSTRAINT IF EXISTS django_admin_log_user_id_c564eba6_fk_auth_user_id;
 
         ALTER TABLE django_admin_log ADD COLUMN IF NOT EXISTS user_id_uuid UUID;
@@ -28,7 +26,6 @@ BEGIN
         ALTER TABLE django_admin_log RENAME COLUMN user_id_uuid TO user_id;
         ALTER TABLE django_admin_log ALTER COLUMN user_id SET NOT NULL;
 
-        -- On recrée une FK pointant vers la nouvelle PK (uuid_user) de la table users
         ALTER TABLE django_admin_log ADD CONSTRAINT django_admin_log_user_id_fk_users
         FOREIGN KEY (user_id) REFERENCES users(uuid_user) ON DELETE CASCADE;
         CREATE INDEX IF NOT EXISTS django_admin_log_user_id_idx ON django_admin_log(user_id);
@@ -59,7 +56,6 @@ BEGIN
 END $$;
 
 -- 3. Création des tables de liaison nécessaires pour PermissionsMixin
--- Django s'attend par défaut à core_users_groups/permissions pour le modèle Users de l'app core
 CREATE TABLE IF NOT EXISTS core_users_groups (
     id BIGSERIAL PRIMARY KEY,
     users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
@@ -74,26 +70,29 @@ CREATE TABLE IF NOT EXISTS core_users_user_permissions (
     UNIQUE(users_id, permission_id)
 );
 
--- 4. Création sécurisée de la table Role
+-- 4. Création sécurisée de la table Role avec colonne level
 CREATE TABLE IF NOT EXISTS core_role (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(64) UNIQUE NOT NULL,
     description VARCHAR(255) NOT NULL,
+    level INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. Initialisation des rôles par défaut
-INSERT INTO core_role (code, description)
+-- 5. Initialisation des rôles par défaut avec niveaux
+INSERT INTO core_role (code, description, level)
 VALUES
-    ('Expansion_L1', 'Expansion L1 - Création seulement'),
-    ('Expansion_L2', 'Expansion L2 - Lecture + Modification'),
-    ('MRV_L1', 'MRV L1 - Lecture seule'),
-    ('MRV_L2', 'MRV L2 - Lecture + Modification'),
-    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation'),
-    ('Admin_L1', 'Admin L1 - Lecture + Modification'),
-    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression')
-ON CONFLICT (code) DO NOTHING;
+    ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
+    ('Expansion_L2', 'Expansion L2 - Lecture + Modification', 2),
+    ('MRV_L1', 'MRV L1 - Lecture seule', 1),
+    ('MRV_L2', 'MRV L2 - Lecture + Modification', 2),
+    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation', 3),
+    ('Admin_L1', 'Admin L1 - Lecture + Modification', 1),
+    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression', 2)
+ON CONFLICT (code) DO UPDATE SET
+    description = EXCLUDED.description,
+    level = EXCLUDED.level;
 
 -- 6. Mise à jour de core_userrole (Remplacement de role par role_id)
 DO $$

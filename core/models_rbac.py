@@ -7,19 +7,20 @@ from django.utils import timezone
 
 
 DEFAULT_POSTGRES_ROLES = [
-    ('Expansion_L1', 'Expansion L1 - Création seulement'),
-    ('Expansion_L2', 'Expansion L2 - Lecture + Modification'),
-    ('MRV_L1', 'MRV L1 - Lecture seule'),
-    ('MRV_L2', 'MRV L2 - Lecture + Modification'),
-    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation'),
-    ('Admin_L1', 'Admin L1 - Lecture + Modification'),
-    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression'),
+    ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
+    ('Expansion_L2', 'Expansion L2 - Lecture + Modification', 2),
+    ('MRV_L1', 'MRV L1 - Lecture seule', 1),
+    ('MRV_L2', 'MRV L2 - Lecture + Modification', 2),
+    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation', 3),
+    ('Admin_L1', 'Admin L1 - Lecture + Modification', 1),
+    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression', 2),
 ]
 
 
 class Role(models.Model):
     code = models.CharField(max_length=64, unique=True, verbose_name='Code du rôle')
     description = models.CharField(max_length=255, verbose_name='Description du rôle')
+    level = models.IntegerField(default=1, verbose_name='Niveau du rôle')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -33,8 +34,34 @@ class Role(models.Model):
 
     @classmethod
     def ensure_default_roles(cls):
-        for code, description in DEFAULT_POSTGRES_ROLES:
-            cls.objects.get_or_create(code=code, defaults={'description': description})
+        for code, description, level in DEFAULT_POSTGRES_ROLES:
+            cls.objects.update_or_create(
+                code=code,
+                defaults={'description': description, 'level': level}
+            )
+
+    def get_category(self):
+        """Retourne la catégorie du rôle (ADMIN, MRV, EXPANSION)"""
+        code = self.code.upper()
+        if 'ADMIN' in code:
+            return 'ADMIN'
+        if 'MRV' in code:
+            return 'MRV'
+        if 'EXPANSION' in code:
+            return 'EXPANSION'
+        return 'OTHER'
+
+    @classmethod
+    def get_lowest_for_category(cls, category):
+        """Retourne le rôle de niveau 1 pour une catégorie donnée"""
+        category = category.upper()
+        if category == 'ADMIN':
+            return cls.objects.get(code='Admin_L1')
+        if category == 'MRV':
+            return cls.objects.get(code='MRV_L1')
+        if category == 'EXPANSION':
+            return cls.objects.get(code='Expansion_L1')
+        return None
 
 
 class UsersManager(BaseUserManager):
