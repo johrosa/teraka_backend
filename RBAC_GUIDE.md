@@ -159,7 +159,10 @@ Le système RBAC utilise les rôles PostgreSQL suivants avec une hiérarchie par
 
 1. **Utilisateur se connecte via `/api/login/`**
    - Identifiants: username/password
-   - Reçoit un token JWT incluant son rôle PostgreSQL et son **niveau (level)**
+   - **Sélection de rôle (Optionnel) :** L'utilisateur peut spécifier un rôle souhaité dans le corps de la requête (`{"email": "...", "password": "...", "role": "Expansion_L1"}`).
+   - **Principe du Moindre Privilège :** Si aucun rôle n'est spécifié, le système attribue par défaut le **niveau 1** (le plus bas) de la catégorie de l'utilisateur.
+   - **Validation :** Le rôle demandé doit appartenir à la même catégorie que le rôle assigné et avoir un niveau inférieur ou égal. En cas d'erreur, le système bascule sur le niveau 1 par défaut.
+   - Reçoit un token JWT incluant le rôle final et son **niveau (level)**.
 
 2. **Requête à `/api/data/*` avec le token**
    - PostgREST exécute avec les permissions du rôle.

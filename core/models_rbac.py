@@ -45,6 +45,30 @@ class Role(models.Model):
     def __str__(self):
         return f"{self.code} (L{self.level}) - {self.description}"
 
+    def get_category(self):
+        """Identifie la catégorie du rôle (ADMIN, MRV, EXPANSION)"""
+        code = self.code.upper()
+        if 'ADMIN' in code:
+            return 'ADMIN'
+        if 'MRV' in code:
+            return 'MRV'
+        if 'EXPANSION' in code:
+            return 'EXPANSION'
+        return 'OTHER'
+
+    @classmethod
+    def get_lowest_for_category(cls, category):
+        """Retourne le rôle de niveau 1 pour une catégorie donnée"""
+        mapping = {
+            'ADMIN': 'Admin_L1',
+            'MRV': 'MRV_L1',
+            'EXPANSION': 'Expansion_L1'
+        }
+        target_code = mapping.get(category)
+        if target_code:
+            return cls.objects.filter(code=target_code).first()
+        return None
+
     @classmethod
     def ensure_default_roles(cls):
         for code, description, level in DEFAULT_POSTGRES_ROLES:
