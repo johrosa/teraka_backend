@@ -274,7 +274,7 @@ class ArbreBaseline(models.Model):
     uuid_arbre_baseline = models.UUIDField(unique=True)
     operateur_id = models.TextField()
     c_com = models.ForeignKey('Communes', models.DO_NOTHING, db_column='c_com', to_field='c_com')
-    uuid_arbre_gps = models.OneToOneField('ArbreGps', models.DO_NOTHING, db_column='uuid_arbre_gps')
+    uuid_arbre_gps = models.OneToOneField('ArbreGps', models.DO_NOTHING, db_column='uuid_arbre_gps', to_field='uuid_arbre_gps')
     date_baseline = models.DateTimeField()
     uuid_espece = models.ForeignKey('EspecesArbres', models.DO_NOTHING, db_column='uuid_espece', to_field='uuid_espece', blank=True, null=True)
     autre_espece = models.TextField(blank=True, null=True)
