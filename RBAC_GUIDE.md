@@ -133,19 +133,21 @@ Le système RBAC utilise les rôles PostgreSQL suivants avec une hiérarchie par
 
 | Rôle | Niveau | Description |
 |------|--------|-------------|
-| `ADMIN` | 3 | Administrateur Global |
-| `Admin_L1` | 1 | Admin L1 - Lecture + Modification |
-| `Admin_L2` | 2 | Admin L2 - Lecture + Modification + Suppression |
-| `EXPANSION` | 1 | Expansion - Général |
-| `Expansion_L1` | 1 | Expansion L1 - Création seulement |
-| `Expansion_L2` | 2 | Expansion L2 - Lecture + Modification |
-| `MRV` | 1 | MRV - Général |
-| `MRV_L1` | 1 | MRV L1 - Lecture seule |
-| `MRV_L2` | 2 | MRV L2 - Lecture + Modification |
-| `MRV_L3` | 3 | MRV L3 - Lecture + Modification + Validation |
-| `FINANCE` | 2 | Finance |
+| **Rôles Hiérarchiques** | | |
+| `Admin_L1` | 1 | Administrateur - Niveau 1 (Junior) |
+| `Admin_L2` | 2 | Administrateur - Niveau 2 (Senior) |
+| `Expansion_L1` | 1 | Expansion - Niveau 1 (Collecte) |
+| `Expansion_L2` | 2 | Expansion - Niveau 2 (Gestion) |
+| `MRV_L1` | 1 | MRV - Niveau 1 (Lecture) |
+| `MRV_L2` | 2 | MRV - Niveau 2 (Modification) |
+| `MRV_L3` | 3 | MRV - Niveau 3 (Validation) |
+| **Rôles Spécialisés** | | |
+| `ADMIN` | 3 | Administrateur Global (Full Access) |
+| `MRV` | 1 | MRV - Niveau de base |
+| `EXPANSION` | 1 | Expansion - Niveau de base |
 | `OP_SAISIE` | 1 | Opérateur de Saisie |
-| `QUANTIFICATEUR` | 1 | Quantificateur |
+| `FINANCE` | 2 | Gestion Financière |
+| `QUANTIFICATEUR` | 1 | Quantification et Mesure |
 
 ---
 

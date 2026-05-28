@@ -150,32 +150,37 @@ class RBACImportView(View):
 
             print(f"[OK] DataFrame charge: {len(df)} lignes, colonnes: {df.columns.tolist()}")
 
-            from core.models_rbac import DEFAULT_POSTGRES_ROLES
-            roles = [r[0] for r in DEFAULT_POSTGRES_ROLES]
+            from core.models_rbac import Role
+            # On récupère tous les rôles configurés en base
+            roles_in_db = list(Role.objects.values_list('code', flat=True))
+            # On identifie les colonnes du fichier qui correspondent à des rôles
+            available_columns = [col for col in df.columns if col in roles_in_db]
+
+            print(f"[INFO] Colonnes de rôles détectées dans le fichier: {available_columns}")
 
             with connection.cursor() as cursor:
-                # ÉTAPE 0 : CRÉATION AUTOMATIQUE DES RÔLES
-                for role in roles:
-                    cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
-                    exists = cursor.fetchone()
+                # ÉTAPE 0 : CRÉATION AUTOMATIQUE DES RÔLES POSTGRES SI BESOIN
+                for role_code in roles_in_db:
+                    cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role_code])
+                    if not cursor.fetchone():
+                        cursor.execute(f'CREATE ROLE "{role_code}" NOLOGIN;')
+                        cursor.execute(f'GRANT "{role_code}" TO authenticator;')
 
-                    if not exists:
-                        cursor.execute(f'CREATE ROLE "{role}" NOLOGIN;')
-                        cursor.execute(f'GRANT "{role}" TO authenticator;')
-
-                # ÉTAPE 1 : NETTOYAGE
-                for role in roles:
-                    cursor.execute(f'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM "{role}";')
-                    cursor.execute(f'REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM "{role}";')
+                # ÉTAPE 1 : NETTOYAGE DES PERMISSIONS EXISTANTES (Seulement pour les rôles présents dans le fichier)
+                for role_code in available_columns:
+                    cursor.execute(f'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM "{role_code}";')
+                    cursor.execute(f'REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM "{role_code}";')
 
                 # ÉTAPE 2 : APPLICATION DE LA MATRICE
                 for _, row in df.iterrows():
                     table_name = str(row['Table']).strip()
-                    if not table_name or table_name == 'nan':
+                    if not table_name or table_name == 'nan' or table_name == 'Table':
                         continue
 
-                    for role in roles:
-                        perms = str(row[role]).strip()
+                    for role_code in available_columns:
+                        if role_code not in row:
+                            continue
+                        perms = str(row[role_code]).strip()
                         if perms == '-' or perms == 'nan':
                             continue
 
@@ -190,10 +195,10 @@ class RBACImportView(View):
                             actions.append("DELETE")
 
                         if actions:
-                            cursor.execute(f'GRANT {", ".join(actions)} ON TABLE {table_name} TO "{role}";')
+                            cursor.execute(f'GRANT {", ".join(actions)} ON TABLE {table_name} TO "{role_code}";')
                             if 'C' in perms:
                                 cursor.execute(
-                                    f'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "{role}";')
+                                    f'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "{role_code}";')
 
                         if 'V' in perms:
                             # Vérifier si la colonne "status_validation" existe
@@ -203,9 +208,9 @@ class RBACImportView(View):
                             """, [table_name])
 
                             if cursor.fetchone():
-                                cursor.execute(f'GRANT UPDATE (status_validation) ON TABLE {table_name} TO "{role}";')
+                                cursor.execute(f'GRANT UPDATE (status_validation) ON TABLE {table_name} TO "{role_code}";')
                             else:
-                                print(f"[AVERTISSEMENT] Colonne 'status_validation' non trouvée dans la table '{table_name}' - permission V ignorée pour le rôle '{role}'")
+                                print(f"[AVERTISSEMENT] Colonne 'status_validation' non trouvée dans la table '{table_name}' - permission V ignorée pour le rôle '{role_code}'")
 
             connection.commit()
             messages.success(request, "✅ Roles créés/vérifiés et matrice appliquée.")
@@ -230,9 +235,9 @@ class RBACStatusView(View):
     def get(self, request):
         """Afficher le statut RBAC"""
         with connection.cursor() as cursor:
-            # Rôles existants
-            cursor.execute("SELECT rolname FROM pg_roles WHERE rolname LIKE '%_L%' ORDER BY rolname")
-            roles = [row[0] for row in cursor.fetchall()]
+            # Rôles existants (tous les rôles configurés en base)
+            from core.models_rbac import Role
+            roles = list(Role.objects.values_list('code', flat=True))
 
             # Permissions par rôle et table
             permissions_data = []

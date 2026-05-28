@@ -7,19 +7,22 @@ from django.utils import timezone
 
 
 DEFAULT_POSTGRES_ROLES = [
-    ('ADMIN', 'Administrateur Global', 3),
-    ('Admin_L1', 'Admin L1 - Lecture + Modification', 1),
-    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression', 2),
-    ('EXPANSION', 'Expansion - Général', 1),
-    ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
-    ('Expansion_L2', 'Expansion L2 - Lecture + Modification', 2),
-    ('MRV', 'MRV - Général', 1),
-    ('MRV_L1', 'MRV L1 - Lecture seule', 1),
-    ('MRV_L2', 'MRV L2 - Lecture + Modification', 2),
-    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation', 3),
-    ('FINANCE', 'Finance', 2),
+    # Rôles avec niveaux explicites (utilisés dans la matrice RBAC)
+    ('Admin_L1', 'Administrateur - Niveau 1 (Junior)', 1),
+    ('Admin_L2', 'Administrateur - Niveau 2 (Senior)', 2),
+    ('Expansion_L1', 'Expansion - Niveau 1 (Collecte)', 1),
+    ('Expansion_L2', 'Expansion - Niveau 2 (Gestion)', 2),
+    ('MRV_L1', 'MRV - Niveau 1 (Lecture)', 1),
+    ('MRV_L2', 'MRV - Niveau 2 (Modification)', 2),
+    ('MRV_L3', 'MRV - Niveau 3 (Validation)', 3),
+
+    # Rôles préexistants dans l'enum de la base de données
+    ('ADMIN', 'Administrateur Global (Full Access)', 3),
+    ('MRV', 'MRV - Niveau de base', 1),
+    ('EXPANSION', 'Expansion - Niveau de base', 1),
     ('OP_SAISIE', 'Opérateur de Saisie', 1),
-    ('QUANTIFICATEUR', 'Quantificateur', 1),
+    ('FINANCE', 'Gestion Financière', 2),
+    ('QUANTIFICATEUR', 'Quantification et Mesure', 1),
 ]
 
 
