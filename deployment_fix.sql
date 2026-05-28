@@ -1,4 +1,5 @@
--- Script de secours mis à jour pour aligner une base de données existante avec le nouveau schéma RBAC hiérarchique
+-- Script de secours robuste pour aligner une base de données existante
+-- Gère l'ajout de la colonne 'level' et les contraintes NOT NULL
 
 BEGIN;
 
@@ -16,12 +17,15 @@ BEGIN
         SELECT 1 FROM information_schema.columns
         WHERE table_name='django_admin_log' AND column_name='user_id' AND data_type='bigint'
     ) THEN
+        -- Supprimer la contrainte de clé étrangère pointant vers users(id)
         ALTER TABLE django_admin_log DROP CONSTRAINT IF EXISTS django_admin_log_user_id_c564eba6_fk_users_id;
 
+        -- Convertir en UUID en utilisant uuid_user
         ALTER TABLE django_admin_log
             ALTER COLUMN user_id TYPE UUID
             USING (SELECT uuid_user FROM users WHERE users.id = django_admin_log.user_id);
 
+        -- Recréer la contrainte pointant vers users(uuid_user)
         ALTER TABLE django_admin_log
             ADD CONSTRAINT django_admin_log_user_id_fk_users_uuid_user
             FOREIGN KEY (user_id) REFERENCES users(uuid_user)
@@ -29,7 +33,7 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Création des tables de liaison nécessaires pour PermissionsMixin (si UUID)
+-- 3. Création des tables de liaison nécessaires pour PermissionsMixin
 CREATE TABLE IF NOT EXISTS core_users_groups (
     id BIGSERIAL PRIMARY KEY,
     users_id UUID NOT NULL REFERENCES users(uuid_user) ON DELETE CASCADE,
@@ -44,27 +48,34 @@ CREATE TABLE IF NOT EXISTS core_users_user_permissions (
     UNIQUE(users_id, permission_id)
 );
 
--- 4. Création sécurisée de la table Role avec la colonne 'level'
+-- 4. Création/Mise à jour de la table core_role
 CREATE TABLE IF NOT EXISTS core_role (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(64) UNIQUE NOT NULL,
     description VARCHAR(255) NOT NULL,
-    level INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Assurer que la colonne 'level' existe si la table existait déjà sans elle
+-- Gestion robuste de la colonne 'level'
 DO $$
 BEGIN
+    -- Ajouter la colonne level si elle n'existe pas (nullable au début)
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='core_role' AND column_name='level') THEN
-        ALTER TABLE core_role ADD COLUMN level INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE core_role ADD COLUMN level INTEGER;
     END IF;
 END $$;
 
--- 5. Initialisation des rôles par défaut avec leurs niveaux
-INSERT INTO core_role (code, description, level)
-VALUES
+-- Mettre à jour les lignes existantes avec une valeur par défaut
+UPDATE core_role SET level = 1 WHERE level IS NULL;
+
+-- Mettre la valeur par défaut pour les futures insertions
+ALTER TABLE core_role ALTER COLUMN level SET DEFAULT 1;
+
+-- 5. Initialisation des rôles par défaut
+-- Utilisation d'une table temporaire pour l'UPSERT
+CREATE TEMP TABLE tmp_roles (code VARCHAR(64), description VARCHAR(255), level INTEGER);
+INSERT INTO tmp_roles (code, description, level) VALUES
     ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
     ('Expansion_L2', 'Expansion L2 - Lecture + Modification', 2),
     ('EXPANSION', 'Expansion - Niveau 3 (Coordination)', 3),
@@ -77,10 +88,18 @@ VALUES
     ('ADMIN', 'Administrateur - Niveau 3 (Global)', 3),
     ('FINANCE', 'Finance (Niveau 2)', 2),
     ('OP_SAISIE', 'Opérateur de Saisie (Niveau 1)', 1),
-    ('QUANTIFICATEUR', 'Quantificateur (Niveau 1)', 1)
+    ('QUANTIFICATEUR', 'Quantificateur (Niveau 1)', 1);
+
+INSERT INTO core_role (code, description, level)
+SELECT code, description, level FROM tmp_roles
 ON CONFLICT (code) DO UPDATE SET
     description = EXCLUDED.description,
     level = EXCLUDED.level;
+
+DROP TABLE tmp_roles;
+
+-- Appliquer la contrainte NOT NULL seulement après avoir rempli les données
+ALTER TABLE core_role ALTER COLUMN level SET NOT NULL;
 
 -- 6. Mise à jour de core_userrole
 DO $$
@@ -111,7 +130,7 @@ CREATE TABLE IF NOT EXISTS core_fieldmapping (
     UNIQUE(model_name, field_name)
 );
 
--- 8. Enregistrement forcé des migrations
+-- 8. Enregistrement des migrations
 INSERT INTO django_migrations (app, name, applied)
 VALUES
     ('core', '0001_initial', now()),
