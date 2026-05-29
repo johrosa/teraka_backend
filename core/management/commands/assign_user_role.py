@@ -2,7 +2,7 @@
 Management command pour assigner des rôles PostgreSQL aux utilisateurs Django
 """
 from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from core.models_rbac import Role, UserRole
 
 
@@ -32,6 +32,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        User = get_user_model()
+
         # Lister les rôles disponibles
         if options['list_roles']:
             self.stdout.write(self.style.SUCCESS('Rôles PostgreSQL disponibles:'))
@@ -83,7 +85,7 @@ class Command(BaseCommand):
         # Assigner un rôle
         if options['username'] and options['role']:
             try:
-                user = User.objects.get(username=options['username'])
+                user = User.objects.get(email=options['username'])
             except User.DoesNotExist:
                 raise CommandError(f"L'utilisateur '{options['username']}' n'existe pas.")
 

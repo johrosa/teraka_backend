@@ -2,7 +2,9 @@
 # HOME PAGE - Page d'accueil de la plateforme
 # ============================================================================
 
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 
 
@@ -64,6 +66,94 @@ def home_page_view(request):
         return render(request, 'home.html', context)
 
 
+@login_required
+@require_http_methods(["GET"])
+def profile_view(request):
+    """
+    Page de profil et dashboard utilisée comme redirection post-login Django.
+    """
+    user = request.user
+    dashboard = {
+        'communes_count': 0,
+        'bosquets_total': 0,
+        'arbres_total': 0,
+        'membres_total': 0,
+        'pg_total': 0,
+        'my_pg_count': 0,
+        'my_pending_pg_count': 0,
+    }
+
+    try:
+        from core.models import (
+            Communes, BosquetBaseline, ArbreBaseline, Membre, PgInfos
+        )
+
+        dashboard.update({
+            'communes_count': Communes.objects.count(),
+            'bosquets_total': BosquetBaseline.objects.count(),
+            'arbres_total': ArbreBaseline.objects.count(),
+            'membres_total': Membre.objects.count(),
+            'pg_total': PgInfos.objects.count(),
+        })
+
+        user_uuid = getattr(user, 'uuid_user', None)
+        if user_uuid:
+            my_pg = PgInfos.objects.filter(uuid_operateur=user_uuid)
+            dashboard['my_pg_count'] = my_pg.count()
+            dashboard['my_pending_pg_count'] = my_pg.filter(
+                date_verification__isnull=True
+            ).count()
+    except Exception:
+        pass
+
+    todo_list = [
+        {
+            'label': 'Verifier les informations de profil',
+            'status': 'done' if getattr(user, 'email', '') and getattr(user, 'nom', '') else 'todo',
+        },
+        {
+            'label': 'Consulter le dashboard des donnees',
+            'status': 'todo',
+        },
+        {
+            'label': 'Mettre a jour les donnees de terrain',
+            'status': 'todo',
+        },
+    ]
+
+    if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
+        todo_list.append({
+            'label': 'Controler les roles et permissions RBAC',
+            'status': 'todo',
+        })
+
+    context = {
+        'title': 'Dashboard profil',
+        'user_email': getattr(user, 'email', ''),
+        'user_name': getattr(user, 'nom', '') or getattr(user, 'username', ''),
+        'user_first_name': getattr(user, 'prenom', ''),
+        'user_role': getattr(user, 'role', ''),
+        'user_phone': getattr(user, 'num_tel', ''),
+        'user_commune': getattr(getattr(user, 'c_com', None), 'nom_commun', '') or getattr(user, 'c_com_id', ''),
+        'is_staff': getattr(user, 'is_staff', False),
+        'is_superuser': getattr(user, 'is_superuser', False),
+        'last_login': getattr(user, 'last_login', None),
+        'date_joined': getattr(user, 'date_joined', None),
+        'dashboard': dashboard,
+        'todo_list': todo_list,
+    }
+    return render(request, 'profile.html', context)
+
+
+@require_http_methods(["GET", "POST"])
+def logout_view(request):
+    """
+    Déconnecte l'utilisateur depuis les pages publiques ou l'admin.
+    """
+    logout(request)
+    return redirect('home')
+
+
 # ============================================================================
 # LOGIN & AUTHENTICATION
 # ============================================================================
@@ -75,20 +165,112 @@ from .serializers import PostgrestTokenSerializer
 class LoginForPostgrestView(TokenObtainPairView):
     serializer_class = PostgrestTokenSerializer
 
+    def post(self, request, *args, **kwargs):
+        normalized_data = self.normalize_login_payload(request.data)
+        try:
+            serializer = self.get_serializer(data=normalized_data)
+            serializer.is_valid(raise_exception=True)
+            from rest_framework import status
+            from rest_framework.response import Response
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        except Exception as exc:
+            if not self.is_missing_auth_user_error(exc):
+                raise
 
-from revproxy.views import ProxyView
-from django.http import JsonResponse
-from rest_framework_simplejwt.authentication import JWTAuthentication
+        return self.login_with_imported_users_table(normalized_data)
 
-class PostgrestProxyView(ProxyView):
-    # L'adresse interne où tourne PostgREST (non publiée sur le web)
-    upstream = 'http://127.0.0.1:3000'
+    def normalize_login_payload(self, data):
+        normalized = data.copy()
+        login_value = (
+            normalized.get('email') or
+            normalized.get('username') or
+            normalized.get('login') or
+            normalized.get('user')
+        )
+
+        if login_value:
+            normalized['email'] = login_value
+            normalized['username'] = login_value
+
+        return normalized
+
+    def is_missing_auth_user_error(self, exc):
+        current = exc
+        while current:
+            if 'auth_user' in str(current) and 'does not exist' in str(current):
+                return True
+            current = getattr(current, '__cause__', None)
+        return False
+
+    def login_with_imported_users_table(self, data):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.hashers import check_password
+        from django.db.models import Q
+        from rest_framework import status
+        from rest_framework.response import Response
+        from rest_framework_simplejwt.tokens import RefreshToken
+        Users = get_user_model()
+
+        username = data.get('username') or data.get('email') or data.get('login') or data.get('user')
+        password = data.get('password')
+        if not username or not password:
+            return Response(
+                {'detail': 'email/username et password sont requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = Users.objects.filter(
+            Q(email__iexact=username) |
+            Q(operateur_id__iexact=username) |
+            Q(nom__iexact=username)
+        ).first()
+
+        if not user or not user.is_active or not self.password_matches(password, user.password, check_password):
+            return Response(
+                {'detail': 'Aucun compte actif ne correspond aux identifiants fournis.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        from core.models_rbac import VALIDATOR_ROLES
+
+        role = user.role or 'Expansion_L1'
+        refresh = RefreshToken()
+        refresh['role'] = role
+        refresh['user_id'] = str(user.uuid_user)
+        refresh['username'] = user.email
+        refresh['is_validator'] = role in VALIDATOR_ROLES or role == 'postgres'
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+
+    def password_matches(self, raw_password, stored_password, check_password):
+        if not stored_password:
+            return False
+        if check_password(raw_password, stored_password):
+            return True
+        return raw_password == stored_password
+
+
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
+from django.views import View
+from rest_framework_simplejwt.authentication import JWTStatelessUserAuthentication
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+
+class PostgrestProxyView(View):
+    # L'adresse interne où tourne PostgREST (non publiée sur le web).
+    upstream = getattr(settings, 'POSTGREST_UPSTREAM', 'http://127.0.0.1:3000')
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     def dispatch(self, request, *args, **kwargs):
         # On tente l'authentification via JWT si l'utilisateur n'est pas déjà authentifié par session
         if not request.user.is_authenticated:
             try:
-                auth_header = JWTAuthentication().authenticate(request)
+                auth_header = JWTStatelessUserAuthentication().authenticate(request)
                 if auth_header:
                     request.user, _ = auth_header
             except Exception:
@@ -97,12 +279,82 @@ class PostgrestProxyView(ProxyView):
         # Vérification manuelle de l'authentification car ProxyView n'est pas une APIView de DRF
         if not request.user.is_authenticated:
             return JsonResponse({"detail": "Authentification requise."}, status=401)
-        return super().dispatch(request, *args, **kwargs)
 
-    def get_proxy_request_headers(self, request):
-        headers = super().get_proxy_request_headers(request)
-        # On peut ici ajouter ou modifier des headers si besoin
+        return self.forward_to_postgrest(request, kwargs.get('path', ''))
+
+    def forward_to_postgrest(self, request, path):
+        target_url = self.build_upstream_url(path, request.GET)
+        body = request.body if request.method in {'POST', 'PUT', 'PATCH'} else None
+        proxy_request = Request(
+            target_url,
+            data=body,
+            headers=self.build_upstream_headers(request),
+            method=request.method,
+        )
+
+        try:
+            with urlopen(proxy_request, timeout=30) as upstream_response:
+                return self.build_django_response(
+                    upstream_response.read(),
+                    upstream_response.status,
+                    upstream_response.headers,
+                )
+        except HTTPError as exc:
+            return self.build_django_response(
+                exc.read(),
+                exc.code,
+                exc.headers,
+            )
+        except URLError as exc:
+            return JsonResponse(
+                {
+                    "detail": "PostgREST est inaccessible.",
+                    "error": str(exc.reason),
+                },
+                status=502,
+            )
+
+    def build_upstream_url(self, path, query_params):
+        clean_path = path.lstrip('/')
+        target_url = f"{self.upstream.rstrip('/')}/{clean_path}"
+        query_string = query_params.urlencode()
+        if query_string:
+            target_url = f"{target_url}?{query_string}"
+        return target_url
+
+    def build_upstream_headers(self, request):
+        allowed_headers = {
+            'accept',
+            'authorization',
+            'content-type',
+            'prefer',
+            'range',
+            'range-unit',
+        }
+        headers = {}
+        for header_name, header_value in request.headers.items():
+            if header_name.lower() in allowed_headers:
+                headers[header_name] = header_value
         return headers
+
+    def build_django_response(self, content, status_code, upstream_headers):
+        response = HttpResponse(content, status=status_code)
+        excluded_headers = {
+            'connection',
+            'content-encoding',
+            'content-length',
+            'keep-alive',
+            'proxy-authenticate',
+            'proxy-authorization',
+            'te',
+            'trailer',
+            'transfer-encoding',
+            'upgrade',
+        }
+        for header_name, header_value in upstream_headers.items():
+            if header_name.lower() not in excluded_headers:
+                response[header_name] = header_value
+        return response
 
 
 # ============================================================================
@@ -316,7 +568,7 @@ def user_activity_log_view(request):
         logs = LogEntry.objects.filter(
             action_time__gte=last_30_days
         ).values(
-            'user__username',
+            'user__email',
             'content_type__model',
             'action_flag',
             'action_time'
@@ -327,7 +579,7 @@ def user_activity_log_view(request):
         logs_list = []
         for log in logs:
             logs_list.append({
-                'username': log['user__username'],
+                'username': log['user__email'],
                 'model': log['content_type__model'],
                 'action': action_names.get(log['action_flag'], 'UNKNOWN'),
                 'timestamp': log['action_time'].isoformat()

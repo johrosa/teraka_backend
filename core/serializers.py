@@ -22,7 +22,7 @@ class PostgrestTokenSerializer(TokenObtainPairSerializer):
         
         # On définit les "claims" pour PostgREST
         token['role'] = role
-        token['user_id'] = user.id
+        token['user_id'] = str(user.pk)
         token['username'] = user.username
         # On récupère un droit de validation (ex: si l'user est staff)
         token['is_validator'] = user.is_staff

@@ -2,18 +2,41 @@
 Model pour associer les utilisateurs Django aux rôles PostgreSQL RBAC
 """
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 
-DEFAULT_POSTGRES_ROLES = [
-    ('Expansion_L1', 'Expansion L1 - Création seulement'),
-    ('Expansion_L2', 'Expansion L2 - Lecture + Modification'),
-    ('MRV_L1', 'MRV L1 - Lecture seule'),
-    ('MRV_L2', 'MRV L2 - Lecture + Modification'),
-    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation'),
-    ('Admin_L1', 'Admin L1 - Lecture + Modification'),
-    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression'),
+BASE_POSTGRES_ROLES = [
+    ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
+    ('Expansion_L2', 'Expansion L2 - Lecture + Modification', 2),
+    ('MRV_L1', 'MRV L1 - Lecture seule', 1),
+    ('MRV_L2', 'MRV L2 - Lecture + Modification', 2),
+    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation', 3),
+    ('Admin_L1', 'Admin L1 - Lecture + Modification', 1),
+    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression', 2),
 ]
+
+USER_ENUM_POSTGRES_ROLES = [
+    ('ADMIN', 'Enum users.role ADMIN - full database access', 3),
+    ('MRV', 'Enum users.role MRV - inherits from MRV_L3', 3),
+    ('EXPANSION', 'Enum users.role EXPANSION - inherits from Expansion_L2', 2),
+    ('OP_SAISIE', 'Enum users.role OP_SAISIE - inherits from Expansion_L1', 1),
+    ('FINANCE', 'Enum users.role FINANCE - inherits from Admin_L1', 1),
+    ('QUANTIFICATEUR', 'Enum users.role QUANTIFICATEUR - inherits from MRV_L2', 2),
+]
+
+USER_ROLE_PERMISSION_ALIASES = {
+    'MRV': 'MRV_L3',
+    'EXPANSION': 'Expansion_L2',
+    'OP_SAISIE': 'Expansion_L1',
+    'FINANCE': 'Admin_L1',
+    'QUANTIFICATEUR': 'MRV_L2',
+}
+
+ADMIN_ALL_ACCESS_ROLES = {'ADMIN'}
+DEFAULT_POSTGRES_ROLES = BASE_POSTGRES_ROLES + USER_ENUM_POSTGRES_ROLES
+BASE_POSTGRES_ROLE_CODES = [code for code, _, _ in BASE_POSTGRES_ROLES]
+DEFAULT_POSTGRES_ROLE_CODES = [code for code, _, _ in DEFAULT_POSTGRES_ROLES]
+VALIDATOR_ROLES = {'MRV_L3', 'Admin_L1', 'Admin_L2', 'ADMIN', 'MRV'}
 
 
 class Role(models.Model):
@@ -32,6 +55,7 @@ class Role(models.Model):
         verbose_name='Description du rôle',
         help_text='Description courte du rôle'
     )
+    level = models.IntegerField(default=0, verbose_name='Niveau')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
 
@@ -45,8 +69,11 @@ class Role(models.Model):
 
     @classmethod
     def ensure_default_roles(cls):
-        for code, description in DEFAULT_POSTGRES_ROLES:
-            cls.objects.get_or_create(code=code, defaults={'description': description})
+        for code, description, level in DEFAULT_POSTGRES_ROLES:
+            cls.objects.update_or_create(
+                code=code,
+                defaults={'description': description, 'level': level},
+            )
 
 
 class UserRole(models.Model):
@@ -58,7 +85,7 @@ class UserRole(models.Model):
     POSTGRES_ROLES = DEFAULT_POSTGRES_ROLES
     
     user = models.OneToOneField(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='postgres_role',
         verbose_name='Utilisateur Django'
@@ -78,7 +105,7 @@ class UserRole(models.Model):
     class Meta:
         verbose_name = 'Association Utilisateur-Rôle'
         verbose_name_plural = 'Associations Utilisateur-Rôle'
-        ordering = ['user__username']
+        ordering = ['user__email']
     
     def __str__(self):
         return f"{self.user.username} ({self.role.code})"

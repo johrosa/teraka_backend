@@ -6,6 +6,29 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.contrib.gis.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+
+
+class UsersManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Email is required')
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('role', 'ADMIN')
+        extra_fields.setdefault('nom', email.split('@')[0])
+        extra_fields.setdefault('genre', 'H')
+
+        return self.create_user(email, password, **extra_fields)
 
 
 class AnswerBienFaitAgroforesterieMembreSuivi(models.Model):
@@ -1324,14 +1347,14 @@ class TypeDocFoncier(models.Model):
         db_table = 'type_doc_foncier'
 
 
-class Users(models.Model):
-    uuid_user = models.UUIDField(unique=True)
+class Users(AbstractBaseUser, PermissionsMixin):
+    uuid_user = models.UUIDField(primary_key=True, unique=True)
     operateur_id = models.TextField(blank=True, null=True)
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com', blank=True, null=True)
     nom = models.TextField()
     prenom = models.TextField(blank=True, null=True)
     email = models.TextField(unique=True)
-    mot_de_passe = models.TextField()
+    password = models.TextField(db_column='mot_de_passe')
     num_tel = models.TextField(unique=True, blank=True, null=True)
     annee_naissance = models.IntegerField(blank=True, null=True)
     genre = models.TextField()  # This field type is a guess.
@@ -1339,10 +1362,32 @@ class Users(models.Model):
     role = models.TextField()  # This field type is a guess.
     photo = models.TextField(blank=True, null=True)
     is_active = models.BooleanField()
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(blank=True, null=True)
+
+    objects = UsersManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['nom']
 
     class Meta:
         managed = False
         db_table = 'users'
+
+    @property
+    def username(self):
+        return self.email
+
+    @property
+    def first_name(self):
+        return self.prenom or ''
+
+    @property
+    def last_name(self):
+        return self.nom or ''
+
+    def __str__(self):
+        return self.email
 
 
 class UtilisationArbres(models.Model):

@@ -1,4 +1,5 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from core.models_rbac import DEFAULT_POSTGRES_ROLE_CODES
 
 
 class PostgrestTokenSerializer(TokenObtainPairSerializer):
@@ -7,7 +8,7 @@ class PostgrestTokenSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
 
         # Récupérer le rôle depuis les groupes Django
-        rbac_groups = ['Expansion_L1', 'Expansion_L2', 'MRV_L1', 'MRV_L2', 'MRV_L3', 'Admin_L1', 'Admin_L2']
+        rbac_groups = DEFAULT_POSTGRES_ROLE_CODES
 
         user_groups = user.groups.filter(name__in=rbac_groups).values_list('name', flat=True)
 
@@ -20,7 +21,7 @@ class PostgrestTokenSerializer(TokenObtainPairSerializer):
 
         # Claims pour PostgREST
         token['role'] = role
-        token['user_id'] = user.id
+        token['user_id'] = str(user.pk)
         token['username'] = user.username
         token['is_validator'] = user.is_staff
 

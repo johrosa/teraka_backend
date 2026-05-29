@@ -19,6 +19,8 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView
 from core.views import (
     home_page_view,
+    profile_view,
+    logout_view,
     LoginForPostgrestView,
     rbac_hub_view,
     platform_statistics_view,
@@ -43,6 +45,8 @@ urlpatterns = [
     # HOME PAGE
     # ============================================================================
     path('', home_page_view, name='home'),
+    path('accounts/profile/', profile_view, name='profile'),
+    path('logout/', logout_view, name='logout'),
     
     # IMPORTANT: Ces URLs RBAC doivent être AVANT admin.site.urls pour éviter le catch-all
     # Hub RBAC central
@@ -54,6 +58,7 @@ urlpatterns = [
     
     # Dashboard Teraka personnalisé
     path('admin/dashboard/', teraka_admin.admin_view(teraka_admin.dashboard_view), name='teraka_dashboard'),
+    path('admin/logout/', logout_view, name='admin_logout'),
     
     # Admin Django (doit être APRÈS nos routes pour ne pas les intercepter)
     path('admin/', admin.site.urls),

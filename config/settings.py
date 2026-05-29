@@ -49,21 +49,21 @@ INSTALLED_APPS = [
     'corsheaders',
     'django.contrib.gis',
     'core',
-    'revproxy',
 ]
 
 JAZZMIN_SETTINGS = {
     "site_title": "Teraka Admin",
     "site_header": "Teraka",
     "site_brand": "Teraka",
-    "site_logo": None,  # Vous pourrez ajouter un logo plus tard dans static
-    "login_logo": None,
+    "site_logo": "core/img/logo_teraka.png",
+    "login_logo": "core/img/logo_teraka.png",
     "welcome_sign": "Bienvenue sur l'administration Teraka",
     "copyright": "Teraka Ltd",
     "search_model": ["auth.User"],
     "user_avatar": None,
     "topmenu_links": [
-        {"name": "Accueil", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Accueil", "url": "/"},
+        {"name": "Déconnexion", "url": "/logout/"},
         {"name": "Support", "url": "https://www.teraka.org/", "new_window": True},
         {"model": "auth.User"},
     ],
@@ -127,6 +127,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
     'ALGORITHM': 'HS256',
+    'USER_ID_FIELD': 'uuid_user',
+    'USER_ID_CLAIM': 'user_id',
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
 }
 
@@ -160,6 +162,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
+AUTH_USER_MODEL = 'core.Users'
 
 
 # Database
@@ -205,6 +209,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+LOGIN_REDIRECT_URL = '/accounts/profile/'
+LOGOUT_REDIRECT_URL = '/'
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
@@ -226,6 +234,9 @@ import os
 if os.name == 'nt': # Si vous êtes sur Windows
     # On récupère le chemin de l'environnement Conda actuel
     VENV_PATH = os.environ.get('CONDA_PREFIX')
-    os.environ['PATH'] = os.path.join(VENV_PATH, 'Library', 'bin') + os.pathsep + os.environ['PATH']
-    GDAL_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'gdal.dll')
-    GEOS_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'geos_c.dll')
+    if VENV_PATH:
+        os.environ['PATH'] = os.path.join(VENV_PATH, 'Library', 'bin') + os.pathsep + os.environ['PATH']
+        GDAL_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'gdal.dll')
+        GEOS_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'geos_c.dll')
+
+POSTGREST_UPSTREAM = os.environ.get('POSTGREST_UPSTREAM', 'http://127.0.0.1:3000')

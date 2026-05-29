@@ -4,11 +4,43 @@ from django.apps import apps
 app_models = apps.get_app_config('core').get_models()
 
 # Exclure les modèles enregistrés manuellement
-from core.models_rbac import UserRole, FieldMapping
-excluded_models = {UserRole, FieldMapping}
+from core.models_rbac import (
+    ADMIN_ALL_ACCESS_ROLES,
+    DEFAULT_POSTGRES_ROLE_CODES,
+    USER_ROLE_PERMISSION_ALIASES,
+    UserRole,
+    FieldMapping,
+)
+from core.models import Users
+
+excluded_models = {UserRole, FieldMapping, Users}
+
+
+def get_rbac_postgres_roles_from_db():
+    roles = list(DEFAULT_POSTGRES_ROLE_CODES)
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT enumlabel
+                FROM pg_type t
+                JOIN pg_enum e ON e.enumtypid = t.oid
+                JOIN pg_namespace n ON n.oid = t.typnamespace
+                WHERE n.nspname = 'public' AND t.typname = 'Role'
+                ORDER BY e.enumsortorder
+            """)
+            for (enum_role,) in cursor.fetchall():
+                if enum_role not in roles:
+                    roles.append(enum_role)
+    except Exception as e:
+        print(f"[AVERTISSEMENT] Impossible de lire l'enum public.Role: {e}")
+
+    return roles
 
 for model in app_models:
     if model in excluded_models:
+        continue
+    if model.__name__.startswith('Auth'):
         continue
     
     try:
@@ -28,6 +60,53 @@ for model in app_models:
             }
     except (admin.sites.AlreadyRegistered, TypeError):
         pass
+
+
+@admin.register(Users)
+class UsersAdmin(admin.ModelAdmin):
+    list_display = [
+        'email',
+        'nom',
+        'prenom',
+        'role',
+        'operateur_id',
+        'c_com',
+        'is_active',
+        'is_staff',
+        'is_superuser',
+    ]
+    list_filter = ['role', 'is_active', 'is_staff', 'is_superuser', 'genre']
+    search_fields = ['email', 'nom', 'prenom', 'operateur_id', 'num_tel']
+    ordering = ['email']
+    readonly_fields = ['last_login']
+    exclude = ['groups', 'user_permissions']
+
+    fieldsets = (
+        ('Identite', {
+            'fields': (
+                'uuid_user',
+                'email',
+                'password',
+                'nom',
+                'prenom',
+                'num_tel',
+                'genre',
+                'annee_naissance',
+                'adresse',
+                'photo',
+            )
+        }),
+        ('Affectation', {
+            'fields': ('operateur_id', 'c_com', 'role')
+        }),
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser')
+        }),
+        ('Dates', {
+            'fields': ('date_joined', 'last_login'),
+            'classes': ('collapse',),
+        }),
+    )
 
 
 @admin.register(FieldMapping)
@@ -150,7 +229,8 @@ class RBACImportView(View):
 
             print(f"[OK] DataFrame charge: {len(df)} lignes, colonnes: {df.columns.tolist()}")
 
-            roles = ["Expansion_L1", "Expansion_L2", "MRV_L1", "MRV_L2", "MRV_L3", "Admin_L1", "Admin_L2"]
+            roles = get_rbac_postgres_roles_from_db()
+            matrix_roles = [role for role in roles if role in df.columns]
 
             with connection.cursor() as cursor:
                 # ÉTAPE 0 : CRÉATION AUTOMATIQUE DES RÔLES
@@ -160,7 +240,12 @@ class RBACImportView(View):
 
                     if not exists:
                         cursor.execute(f'CREATE ROLE "{role}" NOLOGIN;')
-                        cursor.execute(f'GRANT "{role}" TO authenticator;')
+
+                    cursor.execute(f'GRANT "{role}" TO authenticator;')
+
+                for enum_role, source_role in USER_ROLE_PERMISSION_ALIASES.items():
+                    if enum_role in roles and source_role in roles:
+                        cursor.execute(f'GRANT "{source_role}" TO "{enum_role}";')
 
                 # ÉTAPE 1 : NETTOYAGE
                 for role in roles:
@@ -173,7 +258,7 @@ class RBACImportView(View):
                     if not table_name or table_name == 'nan':
                         continue
 
-                    for role in roles:
+                    for role in matrix_roles:
                         perms = str(row[role]).strip()
                         if perms == '-' or perms == 'nan':
                             continue
@@ -206,6 +291,12 @@ class RBACImportView(View):
                             else:
                                 print(f"[AVERTISSEMENT] Colonne 'status_validation' non trouvée dans la table '{table_name}' - permission V ignorée pour le rôle '{role}'")
 
+                for role in ADMIN_ALL_ACCESS_ROLES:
+                    if role in roles:
+                        cursor.execute(f'GRANT USAGE ON SCHEMA public TO "{role}";')
+                        cursor.execute(f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "{role}";')
+                        cursor.execute(f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "{role}";')
+
             connection.commit()
             messages.success(request, "✅ Roles créés/vérifiés et matrice appliquée.")
             return redirect('/admin/')
@@ -228,9 +319,14 @@ class RBACStatusView(View):
 
     def get(self, request):
         """Afficher le statut RBAC"""
+        expected_roles = get_rbac_postgres_roles_from_db()
+
         with connection.cursor() as cursor:
             # Rôles existants
-            cursor.execute("SELECT rolname FROM pg_roles WHERE rolname LIKE '%_L%' ORDER BY rolname")
+            cursor.execute(
+                "SELECT rolname FROM pg_roles WHERE rolname = ANY(%s) ORDER BY rolname",
+                [expected_roles]
+            )
             roles = [row[0] for row in cursor.fetchall()]
 
             # Permissions par rôle et table
@@ -271,8 +367,8 @@ class RBACStatusView(View):
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'get_role_description', 'created_at', 'updated_at', 'is_active_user']
     list_filter = ['role', 'created_at', 'updated_at', 'user__is_active']
-    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
-    ordering = ['user__username']
+    search_fields = ['user__email', 'user__nom', 'user__prenom']
+    ordering = ['user__email']
     list_per_page = 25
 
     fieldsets = (

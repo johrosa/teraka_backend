@@ -58,16 +58,16 @@
         <div class="rbac-grid">
             {% for stat in rbac_stats %}
             <div class="rbac-role-card">
-                <div class="role-name">{{ stat.role }}</div>
+                <div class="role-name">{{ stat.role_code }}</div>
                 <div class="role-count">{{ stat.count }}</div>
                 <div class="role-description">
-                    {% if stat.role == 'Expansion_L1' %}Création seulement{% endif %}
-                    {% if stat.role == 'Expansion_L2' %}Lecture + Modification{% endif %}
-                    {% if stat.role == 'MRV_L1' %}Lecture seule{% endif %}
-                    {% if stat.role == 'MRV_L2' %}Lecture + Modification{% endif %}
-                    {% if stat.role == 'MRV_L3' %}Lecture + Modification + Validation{% endif %}
-                    {% if stat.role == 'Admin_L1' %}Lecture + Modification{% endif %}
-                    {% if stat.role == 'Admin_L2' %}Lecture + Modification + Suppression{% endif %}
+                    {% if stat.role_code == 'Expansion_L1' %}Création seulement{% endif %}
+                    {% if stat.role_code == 'Expansion_L2' %}Lecture + Modification{% endif %}
+                    {% if stat.role_code == 'MRV_L1' %}Lecture seule{% endif %}
+                    {% if stat.role_code == 'MRV_L2' %}Lecture + Modification{% endif %}
+                    {% if stat.role_code == 'MRV_L3' %}Lecture + Modification + Validation{% endif %}
+                    {% if stat.role_code == 'Admin_L1' %}Lecture + Modification{% endif %}
+                    {% if stat.role_code == 'Admin_L2' %}Lecture + Modification + Suppression{% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -86,7 +86,7 @@
                 </div>
             </a>
 
-            <a href="{% url 'admin:core_rbacadmin_changelist' %}" class="action-card">
+            <a href="{% url 'rbac_import' %}" class="action-card">
                 <div class="action-icon">🔒</div>
                 <div class="action-content">
                     <h4>Importer RBAC</h4>
@@ -94,7 +94,7 @@
                 </div>
             </a>
 
-            <a href="{% url 'admin:auth_user_changelist' %}" class="action-card">
+            <a href="{% url 'admin:core_users_changelist' %}" class="action-card">
                 <div class="action-icon">👥</div>
                 <div class="action-content">
                     <h4>Gérer utilisateurs</h4>

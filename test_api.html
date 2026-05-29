@@ -170,7 +170,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({username: user, password: pass})
+                    body: JSON.stringify({email: user, username: user, password: pass})
                 });
 
                 if (response.ok) {

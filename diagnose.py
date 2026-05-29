@@ -55,7 +55,6 @@ def check_python_packages():
         "psycopg2": "psycopg2",
         "django-cors-headers": "corsheaders",
         "django-jazzmin": "jazzmin",
-        "django-revproxy": "revproxy",
     }
     
     missing = []

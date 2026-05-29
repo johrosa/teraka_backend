@@ -6,7 +6,7 @@
 {% block breadcrumbs %}
 <div class="breadcrumbs">
     <a href="{% url 'admin:index' %}">Accueil</a>
-    &rsaquo; <a href="{% url 'admin:core_rbacadmin_changelist' %}">RBAC</a>
+    &rsaquo; <a href="{% url 'rbac_hub' %}">RBAC</a>
     &rsaquo; Statut des permissions
 </div>
 {% endblock %}
@@ -18,8 +18,8 @@
         <h1>🔐 Statut des permissions RBAC</h1>
         <p class="rbac-subtitle">Vue d'ensemble des rôles et permissions actuels</p>
         <div class="rbac-actions">
-            <a href="{% url 'admin:core_rbacadmin_changelist' %}" class="button">← Retour à RBAC</a>
-            <a href="import-rbac/" class="button primary">Importer nouvelle matrice</a>
+            <a href="{% url 'rbac_hub' %}" class="button">← Retour à RBAC</a>
+            <a href="{% url 'rbac_import' %}" class="button primary">Importer nouvelle matrice</a>
         </div>
     </div>
 
@@ -52,7 +52,7 @@
     <div class="no-data">
         <h3>⚠️ Aucun rôle RBAC trouvé</h3>
         <p>Importez une matrice RBAC pour créer les rôles et permissions.</p>
-        <a href="import-rbac/" class="button primary">Importer matrice RBAC</a>
+        <a href="{% url 'rbac_import' %}" class="button primary">Importer matrice RBAC</a>
     </div>
     {% endif %}
 

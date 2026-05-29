@@ -17,6 +17,9 @@ from django.contrib.gis import admin as gis_admin
 app_models = apps.get_app_config('core').get_models()
 
 for model in app_models:
+    if model.__name__.startswith('Auth'):
+        continue
+
     try:
         # Utiliser GISModelAdmin pour les modèles géographiques
         if hasattr(model, 'geom') or hasattr(model, 'gps'):
@@ -28,8 +31,10 @@ for model in app_models:
 
 # Enregistrer les modèles d'auth
 from django.contrib.auth.admin import GroupAdmin
-from django.contrib.auth.models import User, Group
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
+User = get_user_model()
 class UserGroupInline(admin.TabularInline):
     model = User.groups.through
     extra = 1

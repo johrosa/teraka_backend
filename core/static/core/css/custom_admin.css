@@ -47,3 +47,13 @@ a {
 .card-primary.card-outline {
     border-top: 3px solid var(--teraka-green);
 }
+
+/* Jazzmin login logo */
+.login-logo img,
+.login-logo .brand-image {
+    max-width: 90px !important;
+    max-height: 90px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;
+}

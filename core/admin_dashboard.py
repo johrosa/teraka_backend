@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from core.models_rbac import UserRole
 
 
@@ -32,13 +32,19 @@ class TerakaAdminSite(admin.AdminSite):
         """Vue du dashboard personnalisé"""
 
         # Statistiques utilisateurs et rôles
+        User = get_user_model()
         total_users = User.objects.count()
         active_users = User.objects.filter(is_active=True).count()
         staff_users = User.objects.filter(is_staff=True).count()
         superuser_count = User.objects.filter(is_superuser=True).count()
 
         # Statistiques RBAC
-        rbac_stats = UserRole.objects.values(role=F('role__code')).annotate(count=Count('role')).order_by('role')
+        rbac_stats = (
+            UserRole.objects
+            .values(role_code=F('role__code'))
+            .annotate(count=Count('role'))
+            .order_by('role_code')
+        )
 
         # Statistiques base de données (tables principales)
         with connection.cursor() as cursor:
