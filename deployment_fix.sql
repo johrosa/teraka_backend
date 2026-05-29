@@ -70,17 +70,29 @@ CREATE TABLE IF NOT EXISTS core_users_user_permissions (
     UNIQUE(users_id, permission_id)
 );
 
--- 4. Création sécurisée de la table Role avec colonne level
+-- 4. Création sécurisée de la table Role
 CREATE TABLE IF NOT EXISTS core_role (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(64) UNIQUE NOT NULL,
     description VARCHAR(255) NOT NULL,
-    level INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. Initialisation des rôles par défaut avec niveaux
+-- 4.1 Assurer que la colonne level existe dans core_role
+ALTER TABLE core_role ADD COLUMN IF NOT EXISTS level INTEGER;
+
+-- 4.2 Mettre à jour les niveaux pour les rôles existants pour éviter la violation de NOT NULL
+UPDATE core_role SET level = 1 WHERE level IS NULL AND code LIKE '%_L1';
+UPDATE core_role SET level = 2 WHERE level IS NULL AND code LIKE '%_L2';
+UPDATE core_role SET level = 3 WHERE level IS NULL AND code LIKE '%_L3';
+UPDATE core_role SET level = 1 WHERE level IS NULL; -- Valeur par défaut
+
+-- 4.3 Appliquer la contrainte NOT NULL
+ALTER TABLE core_role ALTER COLUMN level SET NOT NULL;
+ALTER TABLE core_role ALTER COLUMN level SET DEFAULT 1;
+
+-- 5. Initialisation des rôles par défaut
 INSERT INTO core_role (code, description, level)
 VALUES
     ('Expansion_L1', 'Expansion L1 - Création seulement', 1),
@@ -132,7 +144,9 @@ FROM (VALUES
     ('core', '0002b_userrole_safe', now()),
     ('core', '0003_merge_0002_userrole_auditlog_0002b_userrole_safe', now()),
     ('core', '0004_role_model', now()),
-    ('core', '0005_fieldmapping', now())
+    ('core', '0005_fieldmapping', now()),
+    ('core', '0006_alter_role_options_alter_userrole_options_role_level_and_more', now()),
+    ('core', '0007_merge_20260528_1324', now())
 ) AS d(app, name, applied)
 WHERE NOT EXISTS (
     SELECT 1 FROM django_migrations m
