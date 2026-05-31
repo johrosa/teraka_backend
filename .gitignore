@@ -1,0 +1,5 @@
+__pycache__/
+qgis_help.txt
+.agent.md
+*.py[cod]
+*.code-workspace
