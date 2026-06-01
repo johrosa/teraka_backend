@@ -1,5 +1,9 @@
 version: '3.9'
 
+# Environment-based configuration for Teraka deployment
+# Load from .env file: docker compose --env-file .env -f docker-compose.prod.yml up
+# Or set ENV vars: export DB_PASSWORD=secure; docker compose up
+
 services:
   postgres:
     image: postgis/postgis:15-3.3
@@ -27,8 +31,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Support both config file and environment variable overrides
+    # Priority: env vars (if set) > config file > defaults
     volumes:
       - ./api/postgrest.conf:/etc/postgrest/postgrest.conf:ro
+    environment:
+      # Database connection (override via env var if needed)
+      PGRST_DB_URI: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-admin}@postgres:${DB_PORT:-5432}/${DB_NAME:-teraka}
+      PGRST_DB_SCHEMA: ${POSTGREST_DB_SCHEMA:-public}
+      PGRST_DB_ANON_ROLE: ${POSTGREST_DB_ANON_ROLE:-web_anon}
+      
+      # Server configuration
+      PGRST_SERVER_HOST: ${POSTGREST_SERVER_HOST:-0.0.0.0}
+      PGRST_SERVER_PORT: ${POSTGREST_PORT:-3000}
+      
+      # JWT secret (change this in production!)
+      PGRST_JWT_SECRET: ${POSTGREST_JWT_SECRET:-change-me-jwt-secret-at-least-32-chars}
+      
+      # API limits
+      PGRST_MAX_ROWS: ${POSTGREST_MAX_ROWS:-1000}
     command: ["postgrest", "/etc/postgrest/postgrest.conf"]
     ports:
       - "${POSTGREST_PORT:-3000}:3000"
@@ -41,12 +62,23 @@ services:
       dockerfile: Dockerfile
     container_name: teraka_backend
     environment:
+      # Environment type
       ENV: ${ENV:-production}
       DEBUG: ${DEBUG:-False}
-      DATABASE_URL: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-admin}@postgres:5432/${DB_NAME:-teraka}"
+      
+      # Database
+      DATABASE_URL: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-admin}@postgres:${DB_PORT:-5432}/${DB_NAME:-teraka}"
+      
+      # Django security
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      POSTGREST_URL: "http://postgrest:3000"
+      
+      # API endpoints
+      POSTGREST_URL: "http://postgrest:${POSTGREST_PORT:-3000}"
+      API_TIMEOUT: ${API_TIMEOUT:-30}
+      
+      # CORS settings
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
     ports:
       - "${DJANGO_PORT:-8000}:8000"
     volumes:
@@ -61,7 +93,13 @@ services:
         condition: service_healthy
     networks:
       - teraka_network
-    command: ["gunicorn","config.wsgi:application","--bind=0.0.0.0:8000","--workers=4","--timeout=120"]
+    # Use gunicorn in production, fallback to runserver for development
+    command: >
+      sh -c 'if [ "$$ENV" = "production" ]; then
+        gunicorn config.wsgi:application --bind=0.0.0.0:8000 --workers=${DJANGO_WORKERS:-4} --timeout=${DJANGO_TIMEOUT:-120}
+      else
+        python manage.py runserver 0.0.0.0:8000
+      fi'
 
   adminer:
     image: adminer:latest
@@ -72,6 +110,8 @@ services:
       - teraka_network
     depends_on:
       - postgres
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
 
 networks:
   teraka_network:
