@@ -1,0 +1,82 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: teraka_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-teraka}
+      POSTGRES_INITDB_ARGS: "-c default_search_path=public"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - teraka_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgrest:
+    image: postgrest/postgrest:latest
+    container_name: teraka_postgrest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./api/postgrest.conf:/etc/postgrest/postgrest.conf:ro
+    command: ["postgrest", "/etc/postgrest/postgrest.conf"]
+    ports:
+      - "${POSTGREST_PORT:-3000}:3000"
+    networks:
+      - teraka_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teraka_backend
+    environment:
+      ENV: ${ENV:-production}
+      DEBUG: ${DEBUG:-False}
+      DATABASE_URL: "postgres://${DB_USER:-postgres}:${DB_PASSWORD:-admin}@postgres:5432/${DB_NAME:-teraka}"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      POSTGREST_URL: "http://postgrest:3000"
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    volumes:
+      - ./:/app
+      - ./logs:/app/logs
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgrest:
+        condition: service_healthy
+    networks:
+      - teraka_network
+    command: ["gunicorn","config.wsgi:application","--bind=0.0.0.0:8000","--workers=4","--timeout=120"]
+
+  adminer:
+    image: adminer:latest
+    container_name: teraka_adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - teraka_network
+    depends_on:
+      - postgres
+
+networks:
+  teraka_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

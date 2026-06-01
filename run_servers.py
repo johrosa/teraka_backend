@@ -184,8 +184,9 @@ class ServerManager:
         try:
             logger.info(f"▶️  Lancement Django (port {self.django_port})...")
             
-            # Pour production, utiliser gunicorn si disponible
-            if self.env == "production":
+            # Pour production, utiliser gunicorn sur Unix. Sur Windows, Gunicorn ne fonctionne pas
+            # correctement car il dépend de fcntl. En local sur Windows, on utilise le serveur Django.
+            if self.env == "production" and not self.is_windows:
                 cmd = [
                     sys.executable,
                     "-m", "gunicorn",
@@ -204,7 +205,10 @@ class ServerManager:
                     "runserver",
                     f"0.0.0.0:{self.django_port}"
                 ]
-                logger.info("   (Mode: Django development server)")
+                if self.env == "production":
+                    logger.info("   (Mode: Django development server fallback sur Windows)")
+                else:
+                    logger.info("   (Mode: Django development server)")
             
             # Afficher la commande en debug
             logger.debug(f"   Commande: {' '.join(cmd)}")
