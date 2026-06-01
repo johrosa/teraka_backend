@@ -3,3 +3,9 @@ qgis_help.txt
 .agent.md
 *.py[cod]
 *.code-workspace
+
+# ignore archived docs and large QGIS project files
+/docs/archived_markdown/
+*.qgz
+*.qgs
+*.qgz.*
