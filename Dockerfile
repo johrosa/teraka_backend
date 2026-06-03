@@ -42,12 +42,12 @@ RUN chmod +x run_servers.py run_servers.sh
 # Collect static files
 RUN python manage.py collectstatic --noinput || true
 
-# Exposer les ports
-EXPOSE 8000 3000
+# Exposer le port Django
+EXPOSE 8000
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/admin/ || exit 1
 
-# Lancer les serveurs
-CMD ["python", "run_servers.py", "--env", "production"]
+# Lancer l'application Django via Gunicorn
+CMD ["gunicorn", "config.wsgi:application", "--bind=0.0.0.0:8000", "--workers=4", "--timeout=120"]

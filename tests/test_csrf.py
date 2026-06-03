@@ -8,9 +8,10 @@ import sys
 import django
 from pathlib import Path
 
+from _project_path import ensure_project_root
+
 # Configuration Django
-PROJECT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_DIR))
+PROJECT_DIR = ensure_project_root()
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()

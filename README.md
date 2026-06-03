@@ -26,6 +26,13 @@ The production-like stack includes:
 - `run_servers.py` — unified launcher for Django and PostgREST in local / development mode
 - `requirements.txt` — Python dependencies
 
+## Documentation
+
+- [Environment variables](ENVIRONMENT_VARIABLES.md) — configuration values for Django, PostgreSQL, PostgREST, CORS, and local tooling.
+- [RBAC guide](RBAC_GUIDE.md) — current admin workflow for role-based access control.
+- [Management API reference](API_MANAGEMENT_VIEWS.md) — backend monitoring, validation, statistics, and export endpoints.
+- [Troubleshooting](TROUBLESHOOTING.md) — common startup and runtime issues.
+
 ## Deployment
 
 ### Docker Compose (recommended)
@@ -41,6 +48,24 @@ This starts:
 - `postgrest` on port `3000`
 - `backend` (Django) on port `8000`
 - `adminer` on port `8080`
+
+### Standalone backend image
+
+Build only the backend image from `backend_django/`:
+
+```bash
+docker build -t teraka_backend .
+```
+
+Run the backend container connected to an existing PostgreSQL database:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e DJANGO_SECRET_KEY=your-secret-key \
+  -e DATABASE_URL=postgres://postgres:admin@host:5432/teraka \
+  -e ALLOWED_HOSTS=localhost,127.0.0.1 \
+  teraka_backend
+```
 
 ### Docker Compose pre-steps
 

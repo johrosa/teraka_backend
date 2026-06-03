@@ -12,13 +12,17 @@ import os
 import django
 import json
 import requests
-from django.contrib.auth.models import User
-from django.test import Client
+
+from _project_path import ensure_project_root
+
+ensure_project_root()
 
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
+from django.contrib.auth.models import User
+from django.test import Client
 from core.models_rbac import UserRole
 
 # Configuration

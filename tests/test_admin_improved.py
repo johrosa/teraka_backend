@@ -5,6 +5,10 @@ Script de test pour l'interface admin améliorée
 import os
 import django
 
+from _project_path import ensure_project_root
+
+ensure_project_root()
+
 # Configuration Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()

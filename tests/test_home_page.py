@@ -9,6 +9,10 @@ import django
 import requests
 from datetime import datetime
 
+from _project_path import ensure_project_root
+
+ensure_project_root()
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 

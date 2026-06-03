@@ -81,7 +81,7 @@ def compare_approaches():
     print("  Si vous voulez tester les groupes:")
     print("  1. python migrate_to_groups.py")
     print("  2. Modifier serializers.py pour importer serializers_groups")
-    print("  3. Tester avec test_end_to_end.py")
+    print("  3. Tester avec tests/test_end_to_end.py")
     print()
 
 if __name__ == '__main__':

@@ -73,19 +73,39 @@ def profile_view(request):
     Page de profil et dashboard utilisée comme redirection post-login Django.
     """
     user = request.user
+    user_uuid = getattr(user, 'uuid_user', None)
+    user_role = getattr(user, 'role', '') or ''
+    postgres_role = getattr(user, 'postgres_role', None)
+    postgres_role_obj = getattr(postgres_role, 'role', None)
+    postgres_role_code = getattr(postgres_role_obj, 'code', '') or user_role
+    postgres_role_description = getattr(postgres_role_obj, 'description', '')
+    commune = getattr(user, 'c_com', None)
+    commune_name = getattr(commune, 'nom_commun', '') or getattr(user, 'c_com_id', '')
+    full_name = ' '.join(
+        part for part in [
+            getattr(user, 'prenom', '') or '',
+            getattr(user, 'nom', '') or '',
+        ]
+        if part
+    )
+
     dashboard = {
         'communes_count': 0,
         'bosquets_total': 0,
         'arbres_total': 0,
         'membres_total': 0,
         'pg_total': 0,
+        'suivi_pg_total': 0,
         'my_pg_count': 0,
         'my_pending_pg_count': 0,
+        'my_bosquets_count': 0,
+        'my_membres_count': 0,
+        'my_validations_count': 0,
     }
 
     try:
         from core.models import (
-            Communes, BosquetBaseline, ArbreBaseline, Membre, PgInfos
+            Communes, BosquetBaseline, ArbreBaseline, Membre, PgInfos, PgSuivi
         )
 
         dashboard.update({
@@ -94,37 +114,89 @@ def profile_view(request):
             'arbres_total': ArbreBaseline.objects.count(),
             'membres_total': Membre.objects.count(),
             'pg_total': PgInfos.objects.count(),
+            'suivi_pg_total': PgSuivi.objects.count(),
         })
 
-        user_uuid = getattr(user, 'uuid_user', None)
         if user_uuid:
             my_pg = PgInfos.objects.filter(uuid_operateur=user_uuid)
             dashboard['my_pg_count'] = my_pg.count()
             dashboard['my_pending_pg_count'] = my_pg.filter(
                 date_verification__isnull=True
             ).count()
+            dashboard['my_validations_count'] = PgInfos.objects.filter(
+                uuid_verificateur=user_uuid,
+                date_verification__isnull=False,
+            ).count()
+
+            if hasattr(BosquetBaseline, 'uuid_operateur'):
+                dashboard['my_bosquets_count'] = BosquetBaseline.objects.filter(
+                    uuid_operateur=user_uuid
+                ).count()
+            if hasattr(Membre, 'uuid_operateur'):
+                dashboard['my_membres_count'] = Membre.objects.filter(
+                    uuid_operateur=user_uuid
+                ).count()
     except Exception:
         pass
 
+    account_fields = [
+        ('Email', getattr(user, 'email', '')),
+        ('Nom complet', full_name or getattr(user, 'email', '')),
+        ('Nom', getattr(user, 'nom', '')),
+        ('Prenom', getattr(user, 'prenom', '')),
+        ('Telephone', getattr(user, 'num_tel', '')),
+        ('Operateur ID', getattr(user, 'operateur_id', '')),
+        ('Commune', commune_name),
+        ('Adresse', getattr(user, 'adresse', '')),
+        ('Genre', getattr(user, 'genre', '')),
+        ('Annee de naissance', getattr(user, 'annee_naissance', '')),
+        ('UUID utilisateur', user_uuid),
+        ('Inscrit le', getattr(user, 'date_joined', None)),
+        ('Derniere connexion', getattr(user, 'last_login', None)),
+    ]
+
+    status_cards = [
+        {
+            'label': 'Compte',
+            'value': 'Actif' if getattr(user, 'is_active', False) else 'Inactif',
+            'state': 'good' if getattr(user, 'is_active', False) else 'danger',
+        },
+        {
+            'label': 'Role application',
+            'value': user_role or 'Non defini',
+            'state': 'good' if user_role else 'warning',
+        },
+        {
+            'label': 'Role PostgREST',
+            'value': postgres_role_code or 'Non assigne',
+            'state': 'good' if postgres_role_code else 'warning',
+        },
+        {
+            'label': 'Acces admin',
+            'value': 'Superuser' if getattr(user, 'is_superuser', False) else ('Staff' if getattr(user, 'is_staff', False) else 'Utilisateur'),
+            'state': 'good' if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False) else 'neutral',
+        },
+    ]
+
     todo_list = [
         {
-            'label': 'Verifier les informations de profil',
-            'status': 'done' if getattr(user, 'email', '') and getattr(user, 'nom', '') else 'todo',
+            'label': 'Verifier les informations de contact',
+            'status': 'done' if getattr(user, 'email', '') and getattr(user, 'num_tel', '') else 'todo',
         },
         {
-            'label': 'Consulter le dashboard des donnees',
-            'status': 'todo',
+            'label': 'Completer le rattachement commune',
+            'status': 'done' if commune_name else 'todo',
         },
         {
-            'label': 'Mettre a jour les donnees de terrain',
-            'status': 'todo',
+            'label': 'Traiter les PG en attente de verification',
+            'status': 'done' if dashboard['my_pending_pg_count'] == 0 else 'todo',
         },
     ]
 
     if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
         todo_list.append({
             'label': 'Controler les roles et permissions RBAC',
-            'status': 'todo',
+            'status': 'done' if postgres_role_code else 'todo',
         })
 
     context = {
@@ -132,14 +204,19 @@ def profile_view(request):
         'user_email': getattr(user, 'email', ''),
         'user_name': getattr(user, 'nom', '') or getattr(user, 'username', ''),
         'user_first_name': getattr(user, 'prenom', ''),
-        'user_role': getattr(user, 'role', ''),
+        'user_full_name': full_name,
+        'user_role': user_role,
         'user_phone': getattr(user, 'num_tel', ''),
-        'user_commune': getattr(getattr(user, 'c_com', None), 'nom_commun', '') or getattr(user, 'c_com_id', ''),
+        'user_commune': commune_name,
+        'postgres_role_code': postgres_role_code,
+        'postgres_role_description': postgres_role_description,
         'is_staff': getattr(user, 'is_staff', False),
         'is_superuser': getattr(user, 'is_superuser', False),
         'last_login': getattr(user, 'last_login', None),
         'date_joined': getattr(user, 'date_joined', None),
         'dashboard': dashboard,
+        'account_fields': account_fields,
+        'status_cards': status_cards,
         'todo_list': todo_list,
     }
     return render(request, 'profile.html', context)

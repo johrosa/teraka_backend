@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,17 +22,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-3=#-gb(y!sq*&=2chy@7k#+0&-uv2#w%+v4!anm#u(=&g@797^'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-3=#-gb(y!sq*&=2chy@7k#+0&-uv2#w%+v4!anm#u(=&g@797^'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '[::1]',
-    'teraka-api.herokuapp.com',
-    'teraka-api.onrender.com'
+    host.strip() for host in os.environ.get(
+        'ALLOWED_HOSTS',
+        'localhost,127.0.0.1,teraka-api.herokuapp.com,teraka-api.onrender.com'
+    ).split(',') if host.strip()
 ]
 
 
@@ -130,6 +134,9 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'uuid_user',
     'USER_ID_CLAIM': 'user_id',
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
+    # Token lifetime settings (extend as needed)
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
 MIDDLEWARE = [
@@ -169,14 +176,32 @@ AUTH_USER_MODEL = 'core.Users'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+DATABASE_URL = os.environ.get('DATABASE_URL')
+DB_ENGINE = os.environ.get('DB_ENGINE', 'django.contrib.gis.db.backends.postgis')
+DB_NAME = os.environ.get('DB_NAME', 'teraka')
+DB_USER = os.environ.get('DB_USER', 'postgres')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'ad,in')
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_PORT = os.environ.get('DB_PORT', '5432')
+
+if DATABASE_URL:
+    from urllib.parse import urlparse
+    parsed = urlparse(DATABASE_URL)
+    DB_ENGINE = os.environ.get('DB_ENGINE', 'django.contrib.gis.db.backends.postgis')
+    DB_NAME = parsed.path.lstrip('/') or DB_NAME
+    DB_USER = parsed.username or DB_USER
+    DB_PASSWORD = parsed.password or DB_PASSWORD
+    DB_HOST = parsed.hostname or DB_HOST
+    DB_PORT = str(parsed.port or DB_PORT)
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'teraka',
-        'USER': 'postgres',
-        'PASSWORD': 'ad,in',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': DB_ENGINE,
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
     }
 }
 
