@@ -336,8 +336,9 @@ from django.views import View
 from rest_framework_simplejwt.authentication import JWTStatelessUserAuthentication
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-
-
+from  django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+@method_decorator(csrf_exempt, name='dispatch')
 class PostgrestProxyView(View):
     # L'adresse interne où tourne PostgREST (non publiée sur le web).
     upstream = getattr(settings, 'POSTGREST_UPSTREAM', 'http://127.0.0.1:3000')

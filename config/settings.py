@@ -33,7 +33,7 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get(
         'ALLOWED_HOSTS',
-        'localhost,127.0.0.1,teraka-api.herokuapp.com,teraka-api.onrender.com'
+        'localhost,127.0.0.1,192.168.0.173,teraka-api.herokuapp.com,teraka-api.onrender.com'
     ).split(',') if host.strip()
 ]
 
