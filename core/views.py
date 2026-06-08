@@ -338,6 +338,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from  django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+import requests 
 @method_decorator(csrf_exempt, name='dispatch')
 class PostgrestProxyView(View):
     # L'adresse interne où tourne PostgREST (non publiée sur le web).
@@ -433,6 +434,29 @@ class PostgrestProxyView(View):
             if header_name.lower() not in excluded_headers:
                 response[header_name] = header_value
         return response
+    def post(self, request, *args, **kwargs): 
+        endpoint = request.path.split('/api/')[-1]
+        postgrest_url = f"http://localhost:3000/{endpoint}" 
+        # Récupération sécurisée du token d'autorisation original 
+        headers = { 
+                   'Authorization': request.headers.get('Authorization'),
+                   'Content-Type': 'application/json', 
+                   # Force PostgREST à ignorer le dictionnaire 'fid' s'il n'existe pas en BDD 
+                   # # et à utiliser la vraie clé primaire de la table pour l'upsert 
+                   'Prefer': 'resolution=merge' } 
+        try: 
+            # Extraction propre du JSON envoyé par QGIS 
+            if request.body: 
+                json_data = json.loads(request.body.decode('utf-8')) 
+            else: json_data = {} 
+        except json.JSONDecodeError: 
+            return JsonResponse({'error': 'JSON invalide reçu par le proxy'}, status=400) 
+        # Transmission propre du flux JSON à PostgREST 
+        response = requests.post(postgrest_url, json=json_data, headers=headers) 
+        try: 
+            return JsonResponse(response.json(), status=response.status_code, safe=False) 
+        except Exception: 
+            return JsonResponse({'message': response.text}, status=response.status_code)
 
 
 # ============================================================================

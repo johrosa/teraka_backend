@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get(
@@ -254,6 +254,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static", # Or os.path.join(BASE_DIR, 'static') depending on your Django version
+]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 import os
 if os.name == 'nt': # Si vous êtes sur Windows
