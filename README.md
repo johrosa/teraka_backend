@@ -30,6 +30,7 @@ The production-like stack includes:
 
 - [Environment variables](ENVIRONMENT_VARIABLES.md) — configuration values for Django, PostgreSQL, PostgREST, CORS, and local tooling.
 - [RBAC guide](RBAC_GUIDE.md) — current admin workflow for role-based access control.
+- [Groups/Roles deployment](DEPLOYMENT_GROUPS_ROLES_SYNC.md) — sync Django Groups with PostgreSQL Roles on deployment.
 - [Management API reference](API_MANAGEMENT_VIEWS.md) — backend monitoring, validation, statistics, and export endpoints.
 - [Troubleshooting](TROUBLESHOOTING.md) — common startup and runtime issues.
 
@@ -136,6 +137,7 @@ This applies all pending migrations from the core app (and other Django apps) in
 - `0005_audit_log` — tamper-evident audit log table, pgcrypto function, and triggers
 - `0006_alter_userrole_options` — UserRole metadata updates
 - `0007_audit_view` — readable audit view joining with user emails
+- `0008-0014_*` — User auth fields, UUID defaults, FK conversions
 
 **Important for Docker environments:**
 If running Docker Compose, execute migrations within the container:
@@ -143,6 +145,21 @@ If running Docker Compose, execute migrations within the container:
 ```bash
 docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
 ```
+
+### Django Groups ↔ PostgreSQL Roles Sync
+
+After deployment, synchronize Django Groups with PostgreSQL Roles:
+
+```bash
+python manage.py sync_groups_roles --create
+```
+
+This ensures:
+- All PostgreSQL roles have corresponding Django Groups
+- All Django Groups have corresponding Roles
+- Signals keep them in sync automatically going forward
+
+**For deployment checklist, see:** [DEPLOYMENT_GROUPS_ROLES_SYNC.md](DEPLOYMENT_GROUPS_ROLES_SYNC.md)
 
 ## Access URLs
 
