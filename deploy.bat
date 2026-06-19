@@ -45,6 +45,13 @@ if errorlevel 1 (
     echo [WARNING] Sync command had issues (may be expected)
 )
 
+REM Step 4.1: Sync RBAC permissions to Django permissions
+echo 🔐 Syncing RBAC permissions to Django permissions...
+python manage.py sync_rbac_permissions --create
+if errorlevel 1 (
+    echo [WARNING] sync_rbac_permissions had issues
+)
+
 REM Step 5: Collect static files (if needed)
 echo 📄 Collecting static files...
 python manage.py collectstatic --noinput

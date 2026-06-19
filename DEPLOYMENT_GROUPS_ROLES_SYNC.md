@@ -137,6 +137,26 @@ If needed to revert this feature:
 
 ---
 
+## Sync RBAC permissions to Django permissions
+
+After synchronizing Groups and Roles, synchronize RBAC table/column grants to Django model permissions (auth.Permission).
+
+Run these commands (preview first):
+
+```bash
+# Ensure Groups exist from roles
+python manage.py sync_groups_roles --create
+# Preview permission sync
+python manage.py sync_rbac_permissions --dry-run
+# Then apply permission sync
+python manage.py sync_rbac_permissions --create
+```
+
+Notes:
+- Run this after `sync_groups_roles` so Groups exist.
+- Review `core/management/commands/sync_rbac_permissions.py` and adjust the `role_permission_map` to match your RBAC policy before applying in production.
+- In CI/CD include the `sync_rbac_permissions` step after `sync_groups_roles`.
+
 ## CI/CD Integration
 
 ### GitHub Actions / GitLab CI Example

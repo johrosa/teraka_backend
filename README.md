@@ -148,10 +148,15 @@ docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
 
 ### Django Groups ↔ PostgreSQL Roles Sync
 
-After deployment, synchronize Django Groups with PostgreSQL Roles:
+After deployment, synchronize Django Groups with PostgreSQL Roles and RBAC permissions:
 
 ```bash
+# Sync roles/groups
 python manage.py sync_groups_roles --create
+# Preview permission sync
+python manage.py sync_rbac_permissions --dry-run
+# Apply permission sync
+python manage.py sync_rbac_permissions --create
 ```
 
 This ensures:

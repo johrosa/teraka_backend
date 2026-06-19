@@ -24,6 +24,10 @@ python manage.py migrate
 echo "🔄 Syncing Django Groups with PostgreSQL Roles..."
 python manage.py sync_groups_roles --create
 
+# Step 4.1: Sync RBAC permissions to Django permissions
+echo "🔐 Syncing RBAC permissions to Django permissions..."
+python manage.py sync_rbac_permissions --create
+
 # Step 5: Collect static files (if needed)
 echo "📄 Collecting static files..."
 python manage.py collectstatic --noinput 2>/dev/null || true
