@@ -1,11 +1,205 @@
 # ============================================================================
-# HOME PAGE - Page d'accueil de la plateforme
+# AUDIT LOG VIEW - Tamper-evident audit trail visualization
 # ============================================================================
 
 from django.shortcuts import redirect, render
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
+from django.db import connection
+from django.http import JsonResponse
+from datetime import datetime, timedelta
+
+
+@login_required
+@staff_member_required
+@require_http_methods(["GET"])
+def audit_log_view(request):
+    """
+    Display tamper-evident audit log with filtering and search.
+    
+    Filters:
+    - table_name: filter by table
+    - operation: INSERT, UPDATE, DELETE
+    - changed_by: filter by user email
+    - date_from: start date (YYYY-MM-DD)
+    - date_to: end date (YYYY-MM-DD)
+    - search: search in table/email
+    
+    Verifies hash chain integrity by recomputing hashes.
+    """
+    try:
+        # Get filter parameters
+        table_name_filter = request.GET.get('table', '').strip()
+        operation_filter = request.GET.get('operation', '').strip()
+        changed_by_filter = request.GET.get('changed_by', '').strip()
+        date_from = request.GET.get('date_from', '').strip()
+        date_to = request.GET.get('date_to', '').strip()
+        search_query = request.GET.get('search', '').strip()
+        page_num = request.GET.get('page', 1)
+        
+        # Build SQL query
+        sql = "SELECT * FROM public.audit_log_view WHERE 1=1"
+        params = []
+        
+        if table_name_filter:
+            sql += " AND table_name = %s"
+            params.append(table_name_filter)
+        
+        if operation_filter:
+            sql += " AND operation = %s"
+            params.append(operation_filter)
+        
+        if changed_by_filter:
+            sql += " AND (changed_by_email ILIKE %s OR changed_by = %s)"
+            params.extend([f"%{changed_by_filter}%", changed_by_filter])
+        
+        if search_query:
+            sql += " AND (table_name ILIKE %s OR changed_by_email ILIKE %s)"
+            params.extend([f"%{search_query}%", f"%{search_query}%"])
+        
+        if date_from:
+            sql += " AND event_time::date >= %s"
+            params.append(date_from)
+        
+        if date_to:
+            sql += " AND event_time::date <= %s"
+            params.append(date_to)
+        
+        sql += " ORDER BY id DESC"
+        
+        # Execute query
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            columns = [desc[0] for desc in cursor.description]
+            rows = cursor.fetchall()
+        
+        # Convert to list of dicts
+        audit_entries = [dict(zip(columns, row)) for row in rows]
+        
+        # Format dates for display
+        for entry in audit_entries:
+            if entry.get('event_time'):
+                entry['event_time_formatted'] = entry['event_time'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Pagination
+        paginator = Paginator(audit_entries, 50)
+        page_obj = paginator.get_page(page_num)
+        
+        # Get unique tables for filter dropdown
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT table_name FROM public.audit_log_view 
+                ORDER BY table_name
+            """)
+            tables = [row[0] for row in cursor.fetchall()]
+        
+        # Get unique changed_by for filter dropdown
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT changed_by_email FROM public.audit_log_view 
+                WHERE changed_by_email IS NOT NULL
+                ORDER BY changed_by_email
+            """)
+            users = [row[0] for row in cursor.fetchall()]
+        
+        context = {
+            'page_obj': page_obj,
+            'audit_entries': page_obj.object_list,
+            'tables': tables,
+            'users': users,
+            'filters': {
+                'table': table_name_filter,
+                'operation': operation_filter,
+                'changed_by': changed_by_filter,
+                'date_from': date_from,
+                'date_to': date_to,
+                'search': search_query,
+            },
+            'total_count': len(audit_entries),
+            'has_filters': bool(table_name_filter or operation_filter or changed_by_filter or date_from or date_to or search_query),
+        }
+        
+        return render(request, 'admin/audit_log_view.html', context)
+    
+    except Exception as e:
+        import traceback
+        context = {
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+        }
+        return render(request, 'admin/audit_log_view.html', context, status=500)
+
+
+@login_required
+@staff_member_required
+@require_http_methods(["GET"])
+def audit_hash_verify_view(request):
+    """
+    Verify audit log hash chain integrity.
+    Returns JSON with verification results.
+    """
+    try:
+        table_filter = request.GET.get('table', '').strip()
+        
+        with connection.cursor() as cursor:
+            # Get all audit entries for the table
+            if table_filter:
+                cursor.execute("""
+                    SELECT id, prev_hash, row_hash, event_time, operation, 
+                           encode(digest(coalesce(prev_hash,'') || (jsonb_build_object('op', operation, 
+                           'schema', schema_name, 'table', table_name, 'data', row_data, 
+                           'txid', txid, 'actor', changed_by)::text) || event_time::text, 'sha256'), 'hex') AS recomputed
+                    FROM public.audit_log
+                    WHERE table_name = %s
+                    ORDER BY id
+                """, [table_filter])
+            else:
+                cursor.execute("""
+                    SELECT id, prev_hash, row_hash, event_time, operation,
+                           encode(digest(coalesce(prev_hash,'') || (jsonb_build_object('op', operation, 
+                           'schema', schema_name, 'table', table_name, 'data', row_data, 
+                           'txid', txid, 'actor', changed_by)::text) || event_time::text, 'sha256'), 'hex') AS recomputed
+                    FROM public.audit_log
+                    ORDER BY id
+                """)
+            
+            rows = cursor.fetchall()
+        
+        # Check integrity
+        verification = []
+        all_valid = True
+        for row_id, prev_hash, stored_hash, event_time, operation, recomputed_hash in rows:
+            is_valid = stored_hash == recomputed_hash
+            verification.append({
+                'id': row_id,
+                'valid': is_valid,
+                'operation': operation,
+                'event_time': event_time.isoformat(),
+            })
+            if not is_valid:
+                all_valid = False
+        
+        return JsonResponse({
+            'status': 'success',
+            'chain_intact': all_valid,
+            'entries_checked': len(verification),
+            'invalid_count': sum(1 for v in verification if not v['valid']),
+            'verification': verification,
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+        }, status=500)
+
+
+# ============================================================================
+# HOME PAGE - Page d'accueil de la plateforme
+# ============================================================================
 
 
 @require_http_methods(["GET"])

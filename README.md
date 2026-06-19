@@ -120,6 +120,30 @@ python run_servers.py --env production
 
 Note: on Windows, `run_servers.py` falls back to Django `runserver` for production mode because Gunicorn depends on `fcntl`.
 
+### Database Migrations
+
+After pulling new code or setting up the environment, always run migrations to apply schema changes:
+
+```bash
+python manage.py migrate
+```
+
+This applies all pending migrations from the core app (and other Django apps) in sequence:
+- `0001_initial` — initial schema
+- `0002_role_model` — UserRole and Role models
+- `0003_fieldmapping` — FieldMapping model for QGIS integration
+- `0004_add_users_role_enum_rbac_roles` — PostgreSQL role enum and RBAC configuration
+- `0005_audit_log` — tamper-evident audit log table, pgcrypto function, and triggers
+- `0006_alter_userrole_options` — UserRole metadata updates
+- `0007_audit_view` — readable audit view joining with user emails
+
+**Important for Docker environments:**
+If running Docker Compose, execute migrations within the container:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
+```
+
 ## Access URLs
 
 - Django admin: `http://localhost:8000/admin/`
