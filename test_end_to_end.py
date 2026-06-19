@@ -18,10 +18,10 @@ POSTGREST_URL = 'http://localhost:3000'
 
 # Utilisateurs de test
 TEST_USERS = [
-    {'username': 'expansion_l1', 'password': 'test123', 'expected_role': 'Expansion_L1'},
-    {'username': 'expansion_l2', 'password': 'test123', 'expected_role': 'Expansion_L2'},
-    {'username': 'mrv_l1', 'password': 'test123', 'expected_role': 'MRV_L1'},
-    {'username': 'admin_l1', 'password': 'test123', 'expected_role': 'Admin_L1'},
+    {'email': 'expansion_l1@teraka.org', 'password': 'test123', 'expected_role': 'Expansion_L1'},
+    {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'expected_role': 'Expansion_L2'},
+    {'email': 'mrv_l1@teraka.org', 'password': 'test123', 'expected_role': 'MRV_L1'},
+    {'email': 'admin_l1@teraka.org', 'password': 'test123', 'expected_role': 'Admin_L1'},
 ]
 
 # Couleurs ANSI
@@ -61,20 +61,41 @@ def test_jwt_generation():
     """Test 1: Générer JWT tokens et vérifier les rôles"""
     print_header("TEST 1: Génération de JWT avec les rôles corrects")
     
+    # Cas de test additionnel pour la sélection de rôle
+    EXTENDED_TESTS = [
+        # Défaut (Moindre privilège) -> L1
+        {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'requested_role': None, 'expected_role': 'Expansion_L1'},
+        # Sélection autorisée (L1)
+        {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'requested_role': 'Expansion_L1', 'expected_role': 'Expansion_L1'},
+        # Sélection autorisée (L2)
+        {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'requested_role': 'Expansion_L2', 'expected_role': 'Expansion_L2'},
+        # Sélection interdite (L3 alors que assigné L2) -> Fallback L1
+        {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'requested_role': 'EXPANSION', 'expected_role': 'Expansion_L1'},
+        # Sélection invalide (Catégorie différente) -> Fallback L1
+        {'email': 'expansion_l2@teraka.org', 'password': 'test123', 'requested_role': 'Admin_L1', 'expected_role': 'Expansion_L1'},
+    ]
+
     results = []
     
+    # Tests standards
     for user in TEST_USERS:
-        username = user['username']
+        email = user['email']
         password = user['password']
         expected_role = user['expected_role']
         
-        print(f"{C.YELLOW}Utilisateur:{C.END} {username}")
+        print(f"{C.YELLOW}Utilisateur:{C.END} {email}")
         
         try:
             # Login
+            payload = {'email': email, 'password': password}
+            # Par défaut les tests existants s'attendent au rôle complet pour Admin L1, etc.
+            # Mais avec notre nouvelle logique, sans spécifier de rôle, ils auront L1 par défaut.
+            # Mettons à jour l'attente ou passons le rôle pour rester compatible.
+            payload['role'] = expected_role
+
             response = requests.post(
                 TOKEN_ENDPOINT,
-                json={'username': username, 'password': password},
+                json=payload,
                 timeout=5
             )
             
@@ -127,6 +148,39 @@ def test_jwt_generation():
         
         print()
     
+    # Tests de sélection de rôle (Moindre privilège)
+    print_header("TEST 1.1: Vérification de la sélection de rôle et moindre privilège")
+
+    for test in EXTENDED_TESTS:
+        email = test['email']
+        password = test['password']
+        requested = test['requested_role']
+        expected = test['expected_role']
+
+        print(f"{C.YELLOW}Utilisateur:{C.END} {email}")
+        print(f"  Rôle demandé: {requested or 'AUCUN (Défaut)'}")
+
+        try:
+            payload = {'email': email, 'password': password}
+            if requested:
+                payload['role'] = requested
+
+            response = requests.post(TOKEN_ENDPOINT, json=payload, timeout=5)
+            access_token = response.json().get('access')
+            decoded = jwt.decode(access_token, options={"verify_signature": False})
+            token_role = decoded.get('role')
+
+            if token_role == expected:
+                print_success(f"Role obtenu: '{token_role}' (Attendu: '{expected}')")
+                results.append(True)
+            else:
+                print_error(f"Role mismatch: expected '{expected}', got '{token_role}'")
+                results.append(False)
+        except Exception as e:
+            print_error(f"Exception: {e}")
+            results.append(False)
+        print()
+
     # Résumé
     passed = sum(results)
     total = len(results)
@@ -148,17 +202,17 @@ def test_postgrest_access():
     print_info("Note: PostgREST doit être accessible sur http://localhost:3000")
     
     for user in TEST_USERS[:2]:  # Tester les 2 premiers utilisateurs
-        username = user['username']
+        email = user['email']
         password = user['password']
         role = user['expected_role']
         
-        print(f"{C.YELLOW}Utilisateur:{C.END} {username} (Rôle: {role})")
+        print(f"{C.YELLOW}Utilisateur:{C.END} {email} (Rôle: {role})")
         
         try:
             # Obtenir le token
             response = requests.post(
                 TOKEN_ENDPOINT,
-                json={'username': username, 'password': password},
+                json={'email': email, 'password': password},
                 timeout=5
             )
             

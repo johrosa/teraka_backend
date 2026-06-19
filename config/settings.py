@@ -31,7 +31,8 @@ ALLOWED_HOSTS = [
     '192.168.0.172',
     '[::1]',
     'teraka-api.herokuapp.com',
-    'teraka-api.onrender.com'
+    'teraka-api.onrender.com',
+    'testserver'
 ]
 
 
@@ -133,6 +134,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'TOKEN_OBTAIN_SERIALIZER': 'core.serializers.PostgrestTokenSerializer',
+    'USER_ID_FIELD': 'uuid_user',
 }
 
 # Authentication redirects

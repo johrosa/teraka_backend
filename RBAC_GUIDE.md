@@ -129,17 +129,27 @@ Le hub central est le point d'accès unique pour gérer toutes les permissions R
 
 ## 🔒 Rôles PostgreSQL configurés
 
-Le système RBAC utilise les rôles PostgreSQL suivants:
+Le système RBAC utilise les rôles PostgreSQL suivants avec une hiérarchie par niveau :
 
-| Rôle | Niveau | Permissions typiques |
-|------|--------|---------------------|
-| `Expansion_L1` | 1 | Création seulement (C) |
-| `Expansion_L2` | 2 | Lecture + Modification (RU) |
-| `MRV_L1` | 1 | Lecture seule (R) |
-| `MRV_L2` | 2 | Lecture + Modification (RU) |
-| `MRV_L3` | 3 | Lecture + Modification + Suppression (RUD) |
-| `Admin_L1` | 1 | Lecture + Modification (RU) |
-| `Admin_L2` | 2 | Lecture + Modification + Suppression (RUD) |
+| Rôle | Niveau | Description |
+|------|--------|-------------|
+| **CATÉGORIE ADMIN** | | |
+| `Admin_L1` | 1 | Administrateur - Niveau 1 (Opérationnel) |
+| `Admin_L2` | 2 | Administrateur - Niveau 2 (Superviseur) |
+| `ADMIN` | 3 | Administrateur - Niveau 3 (Global) |
+| **CATÉGORIE MRV** | | |
+| `MRV_L1` | 1 | MRV - Niveau 1 (Lecture) |
+| `MRV_L2` | 2 | MRV - Niveau 2 (Modification) |
+| `MRV_L3` | 3 | MRV - Niveau 3 (Validation) |
+| `MRV` | 1 | MRV - Base (Niveau 1) |
+| **CATÉGORIE EXPANSION** | | |
+| `Expansion_L1` | 1 | Expansion - Niveau 1 (Collecte) |
+| `Expansion_L2` | 2 | Expansion - Niveau 2 (Gestion) |
+| `EXPANSION` | 3 | Expansion - Niveau 3 (Coordination) |
+| **AUTRES RÔLES** | | |
+| `FINANCE` | 2 | Finance (Niveau 2) |
+| `OP_SAISIE` | 1 | Opérateur de Saisie (Niveau 1) |
+| `QUANTIFICATEUR` | 1 | Quantificateur (Niveau 1) |
 
 ---
 
@@ -149,11 +159,15 @@ Le système RBAC utilise les rôles PostgreSQL suivants:
 
 1. **Utilisateur se connecte via `/api/login/`**
    - Identifiants: username/password
-   - Reçoit un token JWT incluant son rôle PostgreSQL
+   - **Sélection de rôle (Optionnel) :** L'utilisateur peut spécifier un rôle souhaité dans le corps de la requête (`{"email": "...", "password": "...", "role": "Expansion_L1"}`).
+   - **Principe du Moindre Privilège :** Si aucun rôle n'est spécifié, le système attribue par défaut le **niveau 1** (le plus bas) de la catégorie de l'utilisateur.
+   - **Validation :** Le rôle demandé doit appartenir à la même catégorie que le rôle assigné et avoir un niveau inférieur ou égal. En cas d'erreur, le système bascule sur le niveau 1 par défaut.
+   - Reçoit un token JWT incluant le rôle final et son **niveau (level)**.
 
 2. **Requête à `/api/data/*` avec le token**
-   - PostgREST exécute avec les permissions du rôle
-   - Accès refusé (403) si permissions insuffisantes
+   - PostgREST exécute avec les permissions du rôle.
+   - Les claims `role` et `level` sont disponibles dans la session PostgreSQL.
+   - Accès refusé (403) si permissions insuffisantes.
 
 3. **Politique de sécurité au niveau base de données**
    - Aucune données sensibles exposées au-delà des droits du rôle

@@ -19,7 +19,7 @@ def populate_user_role_fk(apps, schema_editor):
     for code, description in default_roles:
         Role.objects.get_or_create(code=code, defaults={'description': description})
 
-    for user_role in UserRole.objects.all():
+    for user_role in UserRole.objects.order_by('user__email'):
         role_code = getattr(user_role, 'role', None)
         if not role_code:
             continue

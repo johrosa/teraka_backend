@@ -7,40 +7,87 @@ from django.utils import timezone
 
 
 DEFAULT_POSTGRES_ROLES = [
-    ('Expansion_L1', 'Expansion L1 - Création seulement'),
-    ('Expansion_L2', 'Expansion L2 - Lecture + Modification'),
-    ('MRV_L1', 'MRV L1 - Lecture seule'),
-    ('MRV_L2', 'MRV L2 - Lecture + Modification'),
-    ('MRV_L3', 'MRV L3 - Lecture + Modification + Validation'),
-    ('Admin_L1', 'Admin L1 - Lecture + Modification'),
-    ('Admin_L2', 'Admin L2 - Lecture + Modification + Suppression'),
+    # --- CATÉGORIE ADMIN ---
+    ('Admin_L1', 'Administrateur - Niveau 1 (Opérationnel)', 1),
+    ('Admin_L2', 'Administrateur - Niveau 2 (Superviseur)', 2),
+    ('ADMIN', 'Administrateur - Niveau 3 (Global)', 3),
+
+    # --- CATÉGORIE MRV ---
+    ('MRV_L1', 'MRV - Niveau 1 (Lecture)', 1),
+    ('MRV_L2', 'MRV - Niveau 2 (Modification)', 2),
+    ('MRV_L3', 'MRV - Niveau 3 (Validation)', 3),
+    ('MRV', 'MRV - Base (Niveau 1)', 1),
+
+    # --- CATÉGORIE EXPANSION ---
+    ('Expansion_L1', 'Expansion - Niveau 1 (Collecte)', 1),
+    ('Expansion_L2', 'Expansion - Niveau 2 (Gestion)', 2),
+    ('EXPANSION', 'Expansion - Niveau 3 (Coordination)', 3),
+
+    # --- RÔLES SPÉCIALISÉS ---
+    ('FINANCE', 'Finance (Niveau 2)', 2),
+    ('OP_SAISIE', 'Opérateur de Saisie (Niveau 1)', 1),
+    ('QUANTIFICATEUR', 'Quantificateur (Niveau 1)', 1),
 ]
 
 
 class Role(models.Model):
     code = models.CharField(max_length=64, unique=True, verbose_name='Code du rôle')
     description = models.CharField(max_length=255, verbose_name='Description du rôle')
+    level = models.IntegerField(default=1, verbose_name='Niveau du rôle')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Rôle PostgreSQL'
         verbose_name_plural = 'Rôles PostgreSQL'
-        ordering = ['code']
+        ordering = ['level', 'code']
 
     def __str__(self):
-        return f"{self.code} - {self.description}"
+        return f"{self.code} (L{self.level}) - {self.description}"
+
+    def get_category(self):
+        """Identifie la catégorie du rôle (ADMIN, MRV, EXPANSION)"""
+        code = self.code.upper()
+        if 'ADMIN' in code:
+            return 'ADMIN'
+        if 'MRV' in code:
+            return 'MRV'
+        if 'EXPANSION' in code:
+            return 'EXPANSION'
+        return 'OTHER'
+
+    @classmethod
+    def get_lowest_for_category(cls, category):
+        """Retourne le rôle de niveau 1 pour une catégorie donnée"""
+        mapping = {
+            'ADMIN': 'Admin_L1',
+            'MRV': 'MRV_L1',
+            'EXPANSION': 'Expansion_L1'
+        }
+        target_code = mapping.get(category)
+        if target_code:
+            return cls.objects.filter(code=target_code).first()
+        return None
 
     @classmethod
     def ensure_default_roles(cls):
-        for code, description in DEFAULT_POSTGRES_ROLES:
-            cls.objects.get_or_create(code=code, defaults={'description': description})
+        for code, description, level in DEFAULT_POSTGRES_ROLES:
+            role, created = cls.objects.get_or_create(
+                code=code,
+                defaults={'description': description, 'level': level}
+            )
+            if not created and role.level != level:
+                role.level = level
+                role.save()
 
 
 class UsersManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("L'adresse email est obligatoire")
+        import uuid
+        if 'uuid_user' not in extra_fields:
+            extra_fields['uuid_user'] = uuid.uuid4()
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         if password:

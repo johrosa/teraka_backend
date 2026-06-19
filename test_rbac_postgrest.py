@@ -17,7 +17,8 @@ django.setup()
 
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from django.db import connection
 
 # Configuration PostgREST
@@ -54,13 +55,14 @@ def create_test_users():
     users = {}
     for role_name, (username, display_role, perms) in ROLES_TEST.items():
         try:
-            user = User.objects.get(username=username)
+            user = User.objects.get(email=f'{username}@teraka.org')
             print(f"  ℹ️  {username:<20} (rôle: {display_role:<15}) - Existant")
         except User.DoesNotExist:
             user = User.objects.create_user(
-                username=username,
-                email=f"{username}@teraka.local",
-                password='testpass123'
+                email=f'{username}@teraka.org',
+                nom=username,
+                password='testpass123', genre='H',
+                role_name=display_role
             )
             print(f"  ✅ {username:<20} (rôle: {display_role:<15}) - Créé")
         

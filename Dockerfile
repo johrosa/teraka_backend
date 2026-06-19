@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Variables d'environnement
 ENV PYTHONUNBUFFERED=1 \
@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin \
     libgdal-dev \
     postgresql-client \
+    curl \
+    xz-utils \
     git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,6 +34,11 @@ RUN pip install --upgrade pip setuptools wheel && \
 
 # Copier le code de l'application
 COPY . .
+
+# Installer PostgREST (version Linux statique)
+RUN if [ ! -f api/postgrest ]; then \
+    curl -L https://github.com/PostgREST/postgrest/releases/download/v12.2.0/postgrest-v12.2.0-linux-static-x64.tar.xz | tar -xJ -C api/ ; \
+    fi && chmod +x api/postgrest
 
 # Créer les répertoires pour les logs et media
 RUN mkdir -p /app/logs /app/media /app/staticfiles
