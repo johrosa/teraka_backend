@@ -7,12 +7,23 @@
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.contrib.gis.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+import uuid
 
 
 class UsersManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('Email is required')
+
+        # Ensure UUID primary key exists
+        extra_fields.setdefault('uuid_user', uuid.uuid4())
+
+        # Ensure date_joined present
+        try:
+            from django.utils import timezone
+            extra_fields.setdefault('date_joined', timezone.now())
+        except Exception:
+            pass
 
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
@@ -21,12 +32,27 @@ class UsersManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
+        """Create and return a superuser, filling required fields with sensible defaults.
+
+        Ensures fields required by Django auth and project migrations exist so
+        interactive createsuperuser doesn't fail on missing NOT NULL columns.
+        """
+        # Standard Django flags
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
+
+        # Project-specific defaults
         extra_fields.setdefault('role', 'ADMIN')
         extra_fields.setdefault('nom', email.split('@')[0])
         extra_fields.setdefault('genre', 'H')
+
+        # Set timestamps if not provided
+        try:
+            from django.utils import timezone
+            extra_fields.setdefault('date_joined', timezone.now())
+        except Exception:
+            pass
 
         return self.create_user(email, password, **extra_fields)
 
@@ -1368,7 +1394,7 @@ class Users(AbstractBaseUser, PermissionsMixin):
     objects = UsersManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['nom']
+    REQUIRED_FIELDS = ['nom', 'role']
 
     class Meta:
         managed = False

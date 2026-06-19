@@ -33,7 +33,7 @@ DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get(
         'ALLOWED_HOSTS',
-        'localhost,127.0.0.1,192.168.0.173,teraka-api.herokuapp.com,teraka-api.onrender.com'
+        'localhost,127.0.0.1,192.168.0.173,192.168.1.50, teraka-api.herokuapp.com,teraka-api.onrender.com'
     ).split(',') if host.strip()
 ]
 
@@ -256,9 +256,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "static", # Or os.path.join(BASE_DIR, 'static') depending on your Django version
+    BASE_DIR / "core/static", # Or os.path.join(BASE_DIR, 'static') depending on your Django version
 ]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / 'core/staticfiles'
 
 import os
 if os.name == 'nt': # Si vous êtes sur Windows
