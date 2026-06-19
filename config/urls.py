@@ -31,6 +31,8 @@ from core.views import (
     members_by_region_view,
     data_quality_report_view,
     data_export_view,
+    audit_log_view,
+    audit_hash_verify_view,
 )
 
 from django.urls import re_path
@@ -55,6 +57,10 @@ urlpatterns = [
     # URLs RBAC autonomes
     path('admin/rbac/import/', RBACImportView.as_view(), name='rbac_import'),
     path('admin/rbac/status/', RBACStatusView.as_view(), name='rbac_status'),
+    
+    # Audit Log URLs
+    path('admin/audit/', audit_log_view, name='audit_log'),
+    path('api/audit/verify/', audit_hash_verify_view, name='audit_hash_verify'),
     
     # Dashboard Teraka personnalisé
     path('admin/dashboard/', teraka_admin.admin_view(teraka_admin.dashboard_view), name='teraka_dashboard'),

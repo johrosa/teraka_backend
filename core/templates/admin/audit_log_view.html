@@ -1,0 +1,700 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+
+{% block title %}Audit Log - Tamper-Evident Trail{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Accueil</a>
+    &rsaquo; Audit Log
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="audit-log-container">
+
+    <div class="audit-header">
+        <h1>🔐 Audit Log - Piste d'audit infalsifiable</h1>
+        <p class="audit-subtitle">Historique complet des modifications avec chaîne de hash SHA256</p>
+    </div>
+
+    {% if error %}
+    <div class="error-message">
+        <h3>❌ Erreur lors du chargement</h3>
+        <p>{{ error }}</p>
+        {% if traceback %}
+        <pre class="error-details">{{ traceback }}</pre>
+        {% endif %}
+    </div>
+    {% else %}
+
+    <!-- Filters Section -->
+    <div class="audit-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <div class="filter-field">
+                    <label for="search">🔍 Rechercher:</label>
+                    <input type="text" name="search" id="search" 
+                           value="{{ filters.search }}" 
+                           placeholder="Table, email, ID..." 
+                           class="filter-input">
+                </div>
+
+                <div class="filter-field">
+                    <label for="table">📊 Table:</label>
+                    <select name="table" id="table" class="filter-select">
+                        <option value="">-- Toutes --</option>
+                        {% for table in tables %}
+                        <option value="{{ table }}" {% if filters.table == table %}selected{% endif %}>
+                            {{ table }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="operation">⚙️ Opération:</label>
+                    <select name="operation" id="operation" class="filter-select">
+                        <option value="">-- Toutes --</option>
+                        <option value="INSERT" {% if filters.operation == "INSERT" %}selected{% endif %}>
+                            INSERT (Création)
+                        </option>
+                        <option value="UPDATE" {% if filters.operation == "UPDATE" %}selected{% endif %}>
+                            UPDATE (Modification)
+                        </option>
+                        <option value="DELETE" {% if filters.operation == "DELETE" %}selected{% endif %}>
+                            DELETE (Suppression)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="changed_by">👤 Utilisateur:</label>
+                    <select name="changed_by" id="changed_by" class="filter-select">
+                        <option value="">-- Tous --</option>
+                        {% for user in users %}
+                        <option value="{{ user }}" {% if filters.changed_by == user %}selected{% endif %}>
+                            {{ user }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="date_from">📅 Du:</label>
+                    <input type="date" name="date_from" id="date_from" 
+                           value="{{ filters.date_from }}" class="filter-input">
+                </div>
+
+                <div class="filter-field">
+                    <label for="date_to">📅 Au:</label>
+                    <input type="date" name="date_to" id="date_to" 
+                           value="{{ filters.date_to }}" class="filter-input">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">🔍 Filtrer</button>
+                    <a href="{% url 'audit_log' %}" class="btn btn-secondary">🔄 Réinitialiser</a>
+                </div>
+            </div>
+        </form>
+
+        <!-- Hash Verification Button -->
+        <div class="verification-section">
+            <button id="verify-hash-btn" class="btn btn-info" onclick="verifyHashChain()">
+                ✓ Vérifier l'intégrité (SHA256)
+            </button>
+            <div id="verification-result" class="verification-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Results Summary -->
+    {% if not error %}
+    <div class="audit-summary">
+        <p>
+            <strong>{{ total_count }}</strong> entrée{% if total_count != 1 %}s{% endif %} trouvée{% if total_count != 1 %}s{% endif %}
+            {% if has_filters %} avec filtres appliqués{% endif %}
+        </p>
+    </div>
+
+    <!-- Audit Entries Table -->
+    {% if page_obj.object_list %}
+    <div class="audit-table-wrapper">
+        <table class="audit-table">
+            <thead>
+                <tr>
+                    <th>#ID</th>
+                    <th>🕐 Date/Heure</th>
+                    <th>📊 Table</th>
+                    <th>⚙️ Opération</th>
+                    <th>👤 Utilisateur</th>
+                    <th>🔐 Hash</th>
+                    <th>📋 Données</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in audit_entries %}
+                <tr class="audit-row audit-{{ entry.operation|lower }}">
+                    <td class="id-cell">{{ entry.id }}</td>
+                    <td class="date-cell">
+                        <span title="{{ entry.event_time_formatted }}">
+                            {{ entry.event_time_formatted }}
+                        </span>
+                    </td>
+                    <td class="table-cell">
+                        <span class="table-badge">{{ entry.table_name }}</span>
+                    </td>
+                    <td class="operation-cell">
+                        <span class="operation-badge operation-{{ entry.operation|lower }}">
+                            {{ entry.operation }}
+                        </span>
+                    </td>
+                    <td class="user-cell">
+                        {% if entry.changed_by_email %}
+                            <span class="user-badge">{{ entry.changed_by_email }}</span>
+                        {% else %}
+                            <span class="user-badge system">{{ entry.changed_by }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="hash-cell">
+                        <span class="hash-value" title="{{ entry.row_hash }}">
+                            {{ entry.row_hash|truncatechars:16 }}
+                        </span>
+                    </td>
+                    <td class="data-cell">
+                        <button class="toggle-data-btn" onclick="toggleData(this, {{ entry.id }})">
+                            📋 Afficher
+                        </button>
+                        <div class="data-content" id="data-{{ entry.id }}" style="display: none;">
+                            <pre>{{ entry.row_data }}</pre>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <ul>
+            {% if page_obj.has_previous %}
+            <li>
+                <a href="?page=1{% if filters.table %}&table={{ filters.table }}{% endif %}{% if filters.operation %}&operation={{ filters.operation }}{% endif %}{% if filters.changed_by %}&changed_by={{ filters.changed_by }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}">
+                    « Première
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ page_obj.previous_page_number }}{% if filters.table %}&table={{ filters.table }}{% endif %}{% if filters.operation %}&operation={{ filters.operation }}{% endif %}{% if filters.changed_by %}&changed_by={{ filters.changed_by }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}">
+                    ‹ Précédente
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-number">
+                Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+            </li>
+
+            {% if page_obj.has_next %}
+            <li>
+                <a href="?page={{ page_obj.next_page_number }}{% if filters.table %}&table={{ filters.table }}{% endif %}{% if filters.operation %}&operation={{ filters.operation }}{% endif %}{% if filters.changed_by %}&changed_by={{ filters.changed_by }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}">
+                    Suivante ›
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if filters.table %}&table={{ filters.table }}{% endif %}{% if filters.operation %}&operation={{ filters.operation }}{% endif %}{% if filters.changed_by %}&changed_by={{ filters.changed_by }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}">
+                    Dernière »
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="no-data">
+        <h3>📭 Aucune entrée trouvée</h3>
+        <p>Aucun audit log ne correspond à vos critères de recherche.</p>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+</div>
+
+<style>
+.audit-log-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.audit-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.audit-header h1 {
+    color: #2c3e50;
+    font-size: 2.2em;
+    margin-bottom: 10px;
+}
+
+.audit-subtitle {
+    color: #7f8c8d;
+    font-size: 1.1em;
+    margin-bottom: 20px;
+}
+
+/* Filters */
+.audit-filters {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.filter-form {
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    align-items: flex-end;
+    margin-bottom: 15px;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-field label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #2c3e50;
+    font-size: 0.9em;
+}
+
+.filter-input,
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 0.95em;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #229954;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+.btn-info {
+    background: #3498db;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #2980b9;
+}
+
+/* Verification */
+.verification-section {
+    border-top: 1px solid #ecf0f1;
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.verification-result {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.verification-result.success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.verification-result.failure {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+/* Summary */
+.audit-summary {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    color: #2c3e50;
+}
+
+/* Table */
+.audit-table-wrapper {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.audit-table thead {
+    background: #34495e;
+    color: white;
+}
+
+.audit-table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #2c3e50;
+}
+
+.audit-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.audit-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.audit-row.audit-insert {
+    border-left: 4px solid #27ae60;
+}
+
+.audit-row.audit-update {
+    border-left: 4px solid #f39c12;
+}
+
+.audit-row.audit-delete {
+    border-left: 4px solid #e74c3c;
+}
+
+/* Cell Styles */
+.id-cell {
+    font-weight: 600;
+    color: #2c3e50;
+    width: 60px;
+}
+
+.date-cell {
+    width: 150px;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.table-cell {
+    width: 120px;
+}
+
+.table-badge {
+    background: #ecf0f1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.operation-cell {
+    width: 100px;
+}
+
+.operation-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.operation-insert {
+    background: #d4edda;
+    color: #155724;
+}
+
+.operation-update {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.operation-delete {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.user-cell {
+    width: 180px;
+}
+
+.user-badge {
+    background: #e8f4f8;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #0c5460;
+}
+
+.user-badge.system {
+    background: #f5f5f5;
+    color: #666;
+    font-style: italic;
+}
+
+.hash-cell {
+    width: 120px;
+    font-family: 'Courier New', monospace;
+}
+
+.hash-value {
+    color: #3498db;
+    font-size: 0.85em;
+    word-break: break-all;
+}
+
+.data-cell {
+    width: 100px;
+}
+
+.toggle-data-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: background 0.2s;
+}
+
+.toggle-data-btn:hover {
+    background: #2980b9;
+}
+
+.data-content {
+    margin-top: 10px;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8em;
+    max-height: 300px;
+    overflow: auto;
+}
+
+.data-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.pagination a {
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #3498db;
+    transition: all 0.2s;
+}
+
+.pagination a:hover {
+    background: #3498db;
+    color: white;
+}
+
+.page-number {
+    padding: 8px 12px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* No Data */
+.no-data {
+    background: white;
+    padding: 60px 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.no-data h3 {
+    color: #856404;
+    margin-bottom: 15px;
+}
+
+.no-data p {
+    color: #6c757d;
+}
+
+/* Error */
+.error-message {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.error-details {
+    background: white;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.8em;
+    margin-top: 10px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .filter-group {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .audit-log-container {
+        padding: 10px;
+    }
+
+    .audit-table {
+        font-size: 0.9em;
+    }
+
+    .audit-table th,
+    .audit-table td {
+        padding: 8px 5px;
+    }
+
+    .filter-group {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        flex-direction: column;
+    }
+
+    .pagination ul {
+        flex-wrap: wrap;
+    }
+}
+</style>
+
+<script>
+function toggleData(btn, entryId) {
+    const dataDiv = document.getElementById('data-' + entryId);
+    if (dataDiv.style.display === 'none') {
+        dataDiv.style.display = 'block';
+        btn.textContent = '📋 Masquer';
+    } else {
+        dataDiv.style.display = 'none';
+        btn.textContent = '📋 Afficher';
+    }
+}
+
+function verifyHashChain() {
+    const tableFilter = new URLSearchParams(window.location.search).get('table') || '';
+    const btn = document.getElementById('verify-hash-btn');
+    const resultDiv = document.getElementById('verification-result');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Vérification en cours...';
+    
+    fetch(`{% url 'audit_hash_verify' %}${tableFilter ? '?table=' + encodeURIComponent(tableFilter) : ''}`)
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            resultDiv.style.display = 'block';
+            
+            if (data.status === 'success') {
+                const chainIntact = data.chain_intact;
+                const className = chainIntact ? 'success' : 'failure';
+                const message = chainIntact
+                    ? `✓ Chaîne intacte! ${data.entries_checked} entrée(s) vérifiée(s), aucun changement détecté.`
+                    : `⚠️ Anomalies détectées! ${data.invalid_count} entrée(s) compromise(s) sur ${data.entries_checked}.`;
+                
+                resultDiv.className = 'verification-result ' + className;
+                resultDiv.innerHTML = '<strong>' + message + '</strong>';
+                btn.textContent = '✓ Vérifier l\'intégrité (SHA256)';
+            } else {
+                resultDiv.className = 'verification-result failure';
+                resultDiv.innerHTML = '<strong>❌ Erreur:</strong> ' + data.message;
+                btn.textContent = '✓ Vérifier l\'intégrité (SHA256)';
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'verification-result failure';
+            resultDiv.innerHTML = '<strong>❌ Erreur réseau:</strong> ' + err;
+            btn.textContent = '✓ Vérifier l\'intégrité (SHA256)';
+        });
+}
+</script>
+{% endblock %}

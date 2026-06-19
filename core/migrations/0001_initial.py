@@ -1470,7 +1470,8 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Association Utilisateur-Rôle',
                 'verbose_name_plural': 'Associations Utilisateur-Rôle',
-                'ordering': ['user__username'],
+                'ordering': ['user__email'],
+
             },
         ),
     ]
