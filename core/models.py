@@ -321,7 +321,7 @@ class ArbreBaseline(models.Model):
     uuid_arbre_baseline = models.UUIDField(unique=True)
     operateur_id = models.TextField()
     c_com = models.ForeignKey('Communes', models.DO_NOTHING, db_column='c_com', to_field='c_com')
-    uuid_arbre_gps = models.OneToOneField('ArbreGps', models.DO_NOTHING, db_column='uuid_arbre_gps')
+    uuid_arbre_gps = models.OneToOneField('ArbreGps', models.DO_NOTHING, db_column='uuid_arbre_gps', to_field='uuid_arbre_gps', blank=True, null=True)
     date_baseline = models.DateTimeField()
     uuid_espece = models.ForeignKey('EspecesArbres', models.DO_NOTHING, db_column='uuid_espece', to_field='uuid_espece', blank=True, null=True)
     autre_espece = models.TextField(blank=True, null=True)
@@ -470,7 +470,7 @@ class BienFaitAgroforesteries(models.Model):
 
 class BosquetBaseline(models.Model):
     uuid_bosquet_baseline = models.UUIDField(unique=True)
-    uuid_bosquet_gps = models.OneToOneField('BosquetGps', models.DO_NOTHING, db_column='uuid_bosquet_gps')
+    uuid_bosquet_gps = models.OneToOneField('BosquetGps', models.DO_NOTHING, db_column='uuid_bosquet_gps', to_field='uuid_bosquet_gps', blank=True, null=True)
     uuid_operateur = models.UUIDField()
     uuid_verificateur = models.UUIDField()
     operateur_id = models.TextField()
@@ -558,7 +558,7 @@ class BosquetEvenementDocument(models.Model):
     operateur_id = models.TextField(blank=True, null=True)
     c_com = models.ForeignKey('Communes', models.DO_NOTHING, db_column='c_com', to_field='c_com', blank=True, null=True)
     uuid_bosquet_evenement_doc = models.UUIDField(unique=True)
-    uuid_bosquet_evenement = models.OneToOneField(BosquetEvenement, models.DO_NOTHING, db_column='uuid_bosquet_evenement')
+    uuid_bosquet_evenement = models.OneToOneField(BosquetEvenement, models.DO_NOTHING, db_column='uuid_bosquet_evenement', to_field='uuid_bosquet_evenement', blank=True, null=True)
     type_document = models.TextField()
     detail_autre = models.TextField(blank=True, null=True)
     date_document = models.DateTimeField()
@@ -967,7 +967,7 @@ class PgDocument(models.Model):
     operateur_id = models.TextField()
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     uuid_pg_document = models.UUIDField(unique=True)
-    uuid_pg_historique = models.OneToOneField('PgStatutHistorique', models.DO_NOTHING, db_column='uuid_pg_historique')
+    uuid_pg_historique = models.OneToOneField('PgStatutHistorique', models.DO_NOTHING, db_column='uuid_pg_historique', to_field='uuid_pg_historique', blank=True, null=True)
     type_document = models.TextField()
 
     class Meta:
@@ -978,7 +978,7 @@ class PgDocument(models.Model):
 class PgGps(models.Model):
     uuid_pg_gps = models.UUIDField(unique=True)
     geom = models.PointField(srid=32738)
-    uuid_pg = models.OneToOneField('PgInfos', models.DO_NOTHING, db_column='uuid_pg')
+    uuid_pg = models.OneToOneField('PgInfos', models.DO_NOTHING, db_column='uuid_pg', to_field='uuid_pg', blank=True, null=True)
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     operateur_id = models.TextField(blank=True, null=True)
 
@@ -1063,7 +1063,7 @@ class PgPhoto(models.Model):
     operateur_id = models.TextField()
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     uuid_photo = models.UUIDField(unique=True)
-    uuid_pg_suivi = models.ForeignKey('PgSuivi', models.DO_NOTHING, db_column='uuid_pg_suivi', to_field='uuid_suivi')
+    uuid_pg_suivi = models.ForeignKey('PgSuivi', models.DO_NOTHING, db_column='uuid_pg_suivi', to_field='uuid_pg_suivi')
     chemin = models.TextField()
     external_url = models.TextField(blank=True, null=True)
 
@@ -1090,7 +1090,7 @@ class PgStatutHistorique(models.Model):
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     uuid_pg_historique = models.UUIDField(unique=True)
     uuid_pg = models.ForeignKey(PgInfos, models.DO_NOTHING, db_column='uuid_pg', to_field='uuid_pg')
-    uuid_suivi_admin = models.OneToOneField('PgSuiviAdmin', models.DO_NOTHING, db_column='uuid_suivi_admin')
+    uuid_suivi_admin = models.OneToOneField('PgSuiviAdmin', models.DO_NOTHING, db_column='uuid_suivi_admin', to_field='uuid_suivi_admin', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -1100,7 +1100,7 @@ class PgStatutHistorique(models.Model):
 class PgSuivi(models.Model):
     operateur_id = models.TextField()
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
-    uuid_suivi = models.UUIDField(unique=True)
+    uuid_pg_suivi = models.UUIDField(unique=True)
     uuid_pg_gps = models.ForeignKey(PgGps, models.DO_NOTHING, db_column='uuid_pg_gps', to_field='uuid_pg_gps')
     date_suivi = models.DateTimeField()
     trois_familles = models.BooleanField()
@@ -1136,7 +1136,7 @@ class PgSuiviAdmin(models.Model):
     operateur_id = models.TextField()
     c_com = models.ForeignKey(Communes, models.DO_NOTHING, db_column='c_com', to_field='c_com')
     uuid_suivi_admin = models.UUIDField(unique=True)
-    uuid_pg_suivi = models.OneToOneField(PgSuivi, models.DO_NOTHING, db_column='uuid_pg_suivi')
+    uuid_pg_suivi = models.OneToOneField(PgSuivi, models.DO_NOTHING, db_column='uuid_pg_suivi', to_field='uuid_pg_suivi', blank=True, null=True)
     uuid_verificateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_verificateur', to_field='uuid_user', blank=True, null=True)
     uuid_operateur = models.ForeignKey('Users', models.DO_NOTHING, db_column='uuid_operateur', to_field='uuid_user', related_name='pgsuiviadmin_uuid_operateur_set', blank=True, null=True)
     modif_compo_pg = models.BooleanField()
