@@ -37,10 +37,20 @@ from core.views import (
 
 from django.urls import re_path
 from core.views import PostgrestProxyView
+from django.conf import settings
+from django.http import JsonResponse
 
 # Importer le dashboard personnalisé et les vues RBAC
 from core.admin_dashboard import teraka_admin
 from core.admin import RBACImportView, RBACStatusView
+
+
+def postgrest_info(request):
+    """Retourne des informations utiles pour le debug sur PostgREST upstream/port"""
+    return JsonResponse({
+        'postgrest_upstream': getattr(settings, 'POSTGREST_UPSTREAM', f"http://127.0.0.1:{getattr(settings, 'POSTGREST_PORT', 3000)}"),
+        'postgrest_port': getattr(settings, 'POSTGREST_PORT', 3000),
+    })
 
 urlpatterns = [
     # ============================================================================
@@ -87,6 +97,7 @@ urlpatterns = [
     path('api/export/', data_export_view, name='api_export'),
     
     # Toutes les requêtes commençant par api/data/ iront vers PostgREST
+    path('api/postgrest-info/', postgrest_info, name='postgrest_info'),
     re_path(r'^api/data/(?P<path>.*)$', PostgrestProxyView.as_view(), name='postgrest_proxy'),
 ]
 

@@ -536,7 +536,14 @@ import requests
 @method_decorator(csrf_exempt, name='dispatch')
 class PostgrestProxyView(View):
     # L'adresse interne où tourne PostgREST (non publiée sur le web).
-    upstream = getattr(settings, 'POSTGREST_UPSTREAM', 'http://127.0.0.1:3000')
+    try:
+        _upstream = getattr(settings, 'POSTGREST_UPSTREAM', None)
+        if _upstream:
+            upstream = _upstream
+        else:
+            upstream = f"http://127.0.0.1:{getattr(settings, 'POSTGREST_PORT', 3000)}"
+    except Exception:
+        upstream = 'http://127.0.0.1:3000'
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     def dispatch(self, request, *args, **kwargs):
@@ -630,13 +637,13 @@ class PostgrestProxyView(View):
         return response
     def post(self, request, *args, **kwargs): 
         endpoint = request.path.split('/api/')[-1]
-        postgrest_url = f"http://localhost:3000/{endpoint}" 
+        postgrest_url = f"{self.upstream.rstrip('/')}/{endpoint}"
         # Récupération sécurisée du token d'autorisation original 
         headers = { 
                    'Authorization': request.headers.get('Authorization'),
                    'Content-Type': 'application/json', 
                    # Force PostgREST à ignorer le dictionnaire 'fid' s'il n'existe pas en BDD 
-                   # # et à utiliser la vraie clé primaire de la table pour l'upsert 
+                   # et à utiliser la vraie clé primaire de la table pour l'upsert 
                    'Prefer': 'resolution=merge' } 
         try: 
             # Extraction propre du JSON envoyé par QGIS 

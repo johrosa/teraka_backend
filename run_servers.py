@@ -118,7 +118,11 @@ class ServerManager:
             logger.info("⚙️  Configuration DÉVELOPPEMENT activée")
     
     def start_postgrest(self) -> Optional[subprocess.Popen]:
-        """Démarre le serveur PostgREST"""
+        """Démarre le serveur PostgREST en générant un fichier de config temporaire
+        qui fixe server-port à la valeur souhaitée (self.postgrest_port). Cela évite de
+        modifier le fichier postgrest.conf source et permet de lancer plusieurs instances
+        sur des ports différents si nécessaire.
+        """
         try:
             logger.info(f"▶️  Lancement PostgREST (port {self.postgrest_port})...")
             
@@ -126,10 +130,30 @@ class ServerManager:
             postgrest_name = "postgrest.exe" if self.is_windows else "postgrest"
             postgrest_exe = DJANGO_DIR / "api" / postgrest_name
             
+            # Générer un fichier de config temporaire avec le bon server-port
+            try:
+                original_conf = self.postgrest_conf.read_text(encoding='utf-8')
+                new_conf_lines = []
+                replaced = False
+                for line in original_conf.splitlines():
+                    if line.strip().startswith('server-port'):
+                        new_conf_lines.append(f'server-port = {self.postgrest_port}')
+                        replaced = True
+                    else:
+                        new_conf_lines.append(line)
+                if not replaced:
+                    # Append if no server-port found
+                    new_conf_lines.append(f'server-port = {self.postgrest_port}')
+                temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
+                temp_conf_path.write_text('\n'.join(new_conf_lines), encoding='utf-8')
+            except Exception as e:
+                logger.warning(f"⚠️  Impossible de générer le fichier de conf PostgREST: {e}")
+                temp_conf_path = self.postgrest_conf
+            
             # PostgREST prend le fichier de config directement en argument
             cmd = [
                 str(postgrest_exe),
-                str(self.postgrest_conf)
+                str(temp_conf_path)
             ]
             
             # Afficher la commande en debug
@@ -372,6 +396,13 @@ def main():
     """Fonction principale"""
     import argparse
     
+    # Permet d'importer les settings pour récupérer les ports par défaut si nécessaire
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    try:
+        from django.conf import settings as dj_settings
+    except Exception:
+        dj_settings = None
+
     parser = argparse.ArgumentParser(
         description="Lance les serveurs Teraka (Django + PostgREST)"
     )
@@ -384,23 +415,34 @@ def main():
     parser.add_argument(
         "--django-port",
         type=int,
-        default=8000,
-        help="Port Django (défaut: 8000)"
+        default=None,
+        help="Port Django (défaut: settings.DJANGO_PORT or 8000)"
     )
     parser.add_argument(
         "--postgrest-port",
         type=int,
-        default=3000,
-        help="Port PostgREST (défaut: 3000)"
+        default=None,
+        help="Port PostgREST (défaut: settings.POSTGREST_PORT or 3000)"
     )
     
     args = parser.parse_args()
-    
+
+    # Déterminer les ports en priorité: CLI args > Django settings > ENV > hardcoded defaults    
+    if dj_settings:
+        default_django_port = getattr(dj_settings, 'DJANGO_PORT', 8000)
+        default_postgrest_port = getattr(dj_settings, 'POSTGREST_PORT', 3000)
+    else:
+        default_django_port = int(os.environ.get('DJANGO_PORT', 8000))
+        default_postgrest_port = int(os.environ.get('POSTGREST_PORT', 3000))
+
+    django_port = args.django_port if args.django_port is not None else default_django_port
+    postgrest_port = args.postgrest_port if args.postgrest_port is not None else default_postgrest_port
+
     # Créer le gestionnaire et lancer
     manager = ServerManager(
         env=args.env,
-        django_port=args.django_port,
-        postgrest_port=args.postgrest_port
+        django_port=django_port,
+        postgrest_port=postgrest_port
     )
     
     try:
