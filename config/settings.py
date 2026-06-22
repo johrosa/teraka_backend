@@ -234,6 +234,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 CORS_ALLOW_ALL_ORIGINS = True # À restreindre en production
 CORS_ALLOWED_ORIGINS = [
+    f"http://localhost:{DJANGO_PORT}",
+    f"http://0.0.0.0:{DJANGO_PORT}",
+    f"http://127.0.0.1:{DJANGO_PORT}",
+    f"http://localhost:{POSTGREST_PORT}",
+    f"http://0.0.0.0:{POSTGREST_PORT}",
+    f"http://127.0.0.1:{POSTGREST_PORT}",
+    # Legacy hardcoded ports for backward compatibility
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
