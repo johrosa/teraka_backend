@@ -545,11 +545,11 @@ class PostgrestProxyView(View):
             _upstream = getattr(settings, 'POSTGREST_UPSTREAM', None)
             if _upstream:
                 return _upstream
-            # Otherwise build from host (default 127.0.0.1) and POSTGREST_PORT from settings
+            # Otherwise build from host (default 0.0.0.0 for Windows compatibility) and POSTGREST_PORT
             port = getattr(settings, 'POSTGREST_PORT', 3000)
-            return f"http://127.0.0.1:{port}"
+            return f"http://0.0.0.0:{port}"
         except Exception:
-            return 'http://127.0.0.1:3000'
+            return 'http://0.0.0.0:3000'
 
     def dispatch(self, request, *args, **kwargs):
         # On tente l'authentification via JWT si l'utilisateur n'est pas déjà authentifié par session
