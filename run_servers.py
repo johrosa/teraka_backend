@@ -135,29 +135,26 @@ class ServerManager:
                 dj_settings = None
 
             def build_db_uri():
-                # Priorité: settings.DATABASE_URL > settings.DB_* > env vars
+                # Build DB URI strictly from Django settings when available.
                 try:
                     from urllib.parse import quote_plus
-                    if dj_settings:
-                        db_url = getattr(dj_settings, 'DATABASE_URL', None)
-                        if db_url:
-                            return db_url
-                        user = getattr(dj_settings, 'DB_USER', os.environ.get('DB_USER', 'postgres'))
-                        password = getattr(dj_settings, 'DB_PASSWORD', os.environ.get('DB_PASSWORD', ''))
-                        host = getattr(dj_settings, 'DB_HOST', os.environ.get('DB_HOST', 'localhost'))
-                        port = getattr(dj_settings, 'DB_PORT', os.environ.get('DB_PORT', '5432'))
-                        name = getattr(dj_settings, 'DB_NAME', os.environ.get('DB_NAME', 'teraka'))
-                    else:
-                        user = os.environ.get('DB_USER', 'postgres')
-                        password = os.environ.get('DB_PASSWORD', '')
-                        host = os.environ.get('DB_HOST', 'localhost')
-                        port = os.environ.get('DB_PORT', '5432')
-                        name = os.environ.get('DB_NAME', 'teraka')
+                    if not dj_settings:
+                        raise RuntimeError('Django settings not available')
+                    # Prefer explicit DATABASE_URL in settings if provided
+                    db_url = getattr(dj_settings, 'DATABASE_URL', None)
+                    if db_url:
+                        return db_url
+                    user = getattr(dj_settings, 'DB_USER', 'postgres')
+                    password = getattr(dj_settings, 'DB_PASSWORD', '')
+                    host = getattr(dj_settings, 'DB_HOST', 'localhost')
+                    port = getattr(dj_settings, 'DB_PORT', '5432')
+                    name = getattr(dj_settings, 'DB_NAME', 'teraka')
                     # URL-encode user/password
                     user_enc = quote_plus(str(user)) if user is not None else ''
                     password_enc = quote_plus(str(password)) if password is not None else ''
                     return f"postgres://{user_enc}:{password_enc}@{host}:{port}/{name}"
                 except Exception:
+                    logger.error("Django settings unavailable — falling back to hardcoded DB URI")
                     return "postgres://postgres:@localhost:5432/teraka"
 
             db_uri = build_db_uri()
