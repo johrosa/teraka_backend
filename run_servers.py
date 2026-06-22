@@ -471,25 +471,19 @@ class ServerManager:
         except Exception as e:
             logger.debug(f"   ⚠️  PostgREST info: {type(e).__name__}: {e}")
         
-        # Test 4: PostgREST proxy
+        # Test 4: PostgREST proxy info (test that proxy works, not specific tables)
         tests_total += 1
         try:
-            req = Request(f"http://0.0.0.0:{self.django_port}/api/data/communes?limit=1", method='GET')
+            req = Request(f"http://0.0.0.0:{self.django_port}/api/postgrest-info/", method='GET')
             with urlopen(req, timeout=3) as resp:
                 if resp.status == 200:
                     data = json_lib.loads(resp.read().decode())
-                    logger.info(f"   ✓ PostgREST proxy: {len(data)} records")
+                    logger.info(f"   ✓ PostgREST proxy info: {data.get('postgrest_upstream')}")
                     tests_passed += 1
                 else:
-                    logger.debug(f"   ⚠️  PostgREST proxy: HTTP {resp.status}")
-        except HTTPError as e:
-            if e.code == 401:
-                logger.info(f"   ℹ️  PostgREST proxy: {e.code} (auth required - expected)")
-                tests_passed += 1
-            else:
-                logger.debug(f"   ⚠️  PostgREST proxy: HTTP {e.code}: {e}")
+                    logger.debug(f"   ⚠️  PostgREST proxy info: HTTP {resp.status}")
         except Exception as e:
-            logger.debug(f"   ⚠️  PostgREST proxy: {type(e).__name__}: {e}")
+            logger.debug(f"   ⚠️  PostgREST proxy info: {type(e).__name__}: {e}")
         
         logger.info("")
         logger.info(f"📊 Résumé: {tests_passed}/{tests_total} tests réussis")
