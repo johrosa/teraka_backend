@@ -283,7 +283,7 @@ if os.name == 'nt': # Si vous êtes sur Windows
         GDAL_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'gdal.dll')
         GEOS_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'geos_c.dll')
 
-POSTGREST_UPSTREAM = os.environ.get('POSTGREST_UPSTREAM', 'http://127.0.0.1:3000')
+POSTGREST_UPSTREAM = os.environ.get('POSTGREST_UPSTREAM', f'http://127.0.0.1:{POSTGREST_PORT}')
 
 # ============================================================================
 # PORT CONFIGURATION SUMMARY

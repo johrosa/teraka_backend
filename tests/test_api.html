@@ -100,7 +100,7 @@
                                     </div>
                                     <div class="col-md-8">
                                         <label for="api-endpoint" class="form-label small">Endpoint</label>
-                                        <input type="text" id="api-endpoint" class="form-control form-control-sm" value="http://localhost:8000/api/data/communes">
+                                        <input type="text" id="api-endpoint" class="form-control form-control-sm" value="http://localhost:8050/api/data/communes">
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -164,7 +164,7 @@
             status.innerHTML = "";
 
             try {
-                const response = await fetch('http://localhost:8000/api/login/', {
+                const response = await fetch('http://localhost:8050/api/login/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -204,7 +204,7 @@
             const offset = document.getElementById('opt-offset').value;
 
             // Construit l'URL avec les paramètres d'optimisation
-            let url = `http://localhost:8000/api/data/${tableName}?`;
+            let url = `http://localhost:8050/api/data/${tableName}?`;
             if (select) url += `select=${select}&`;
             if (limit) url += `limit=${limit}&`;
             if (offset) url += `offset=${offset}&`;
