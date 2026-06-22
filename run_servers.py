@@ -119,9 +119,7 @@ class ServerManager:
     
     def start_postgrest(self) -> Optional[subprocess.Popen]:
         """Démarre le serveur PostgREST en générant un fichier de config temporaire
-        qui fixe server-port à la valeur souhaitée (self.postgrest_port). Cela évite de
-        modifier le fichier postgrest.conf source et permet de lancer plusieurs instances
-        sur des ports différents si nécessaire.
+        qui fixe server-port et db-uri à la valeur souhaitée (self.postgrest_port et DB settings).
         """
         try:
             logger.info(f"▶️  Lancement PostgREST (port {self.postgrest_port})...")
@@ -130,20 +128,67 @@ class ServerManager:
             postgrest_name = "postgrest.exe" if self.is_windows else "postgrest"
             postgrest_exe = DJANGO_DIR / "api" / postgrest_name
             
-            # Générer un fichier de config temporaire avec le bon server-port
+            # Récupérer les informations de DB depuis Django settings ou variables d'environnement
+            try:
+                from django.conf import settings as dj_settings
+            except Exception:
+                dj_settings = None
+
+            def build_db_uri():
+                # Priorité: settings.DATABASE_URL > settings.DB_* > env vars
+                try:
+                    from urllib.parse import quote_plus
+                    if dj_settings:
+                        db_url = getattr(dj_settings, 'DATABASE_URL', None)
+                        if db_url:
+                            return db_url
+                        user = getattr(dj_settings, 'DB_USER', os.environ.get('DB_USER', 'postgres'))
+                        password = getattr(dj_settings, 'DB_PASSWORD', os.environ.get('DB_PASSWORD', ''))
+                        host = getattr(dj_settings, 'DB_HOST', os.environ.get('DB_HOST', 'localhost'))
+                        port = getattr(dj_settings, 'DB_PORT', os.environ.get('DB_PORT', '5432'))
+                        name = getattr(dj_settings, 'DB_NAME', os.environ.get('DB_NAME', 'teraka'))
+                    else:
+                        user = os.environ.get('DB_USER', 'postgres')
+                        password = os.environ.get('DB_PASSWORD', '')
+                        host = os.environ.get('DB_HOST', 'localhost')
+                        port = os.environ.get('DB_PORT', '5432')
+                        name = os.environ.get('DB_NAME', 'teraka')
+                    # URL-encode user/password
+                    user_enc = quote_plus(str(user)) if user is not None else ''
+                    password_enc = quote_plus(str(password)) if password is not None else ''
+                    return f"postgres://{user_enc}:{password_enc}@{host}:{port}/{name}"
+                except Exception:
+                    return "postgres://postgres:@localhost:5432/teraka"
+
+            db_uri = build_db_uri()
+
+            # Générer un fichier de config temporaire avec le bon server-port et db-uri
             try:
                 original_conf = self.postgrest_conf.read_text(encoding='utf-8')
                 new_conf_lines = []
-                replaced = False
+                replaced_port = False
+                replaced_dburi = False
                 for line in original_conf.splitlines():
-                    if line.strip().startswith('server-port'):
+                    stripped = line.strip()
+                    if stripped.startswith('server-port'):
                         new_conf_lines.append(f'server-port = {self.postgrest_port}')
-                        replaced = True
+                        replaced_port = True
+                    elif stripped.startswith('db-uri'):
+                        new_conf_lines.append(f'db-uri = "{db_uri}"')
+                        replaced_dburi = True
                     else:
                         new_conf_lines.append(line)
-                if not replaced:
-                    # Append if no server-port found
+                if not replaced_port:
                     new_conf_lines.append(f'server-port = {self.postgrest_port}')
+                if not replaced_dburi:
+                    # Insert db-uri near the top for readability
+                    insert_at = 0
+                    for idx, l in enumerate(new_conf_lines):
+                        if l.strip().startswith('#'):
+                            continue
+                        insert_at = idx
+                        break
+                    new_conf_lines.insert(insert_at, f'db-uri = "{db_uri}"')
                 temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
                 temp_conf_path.write_text('\n'.join(new_conf_lines), encoding='utf-8')
             except Exception as e:
