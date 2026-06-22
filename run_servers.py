@@ -419,8 +419,87 @@ class ServerManager:
         logger.info("=" * 60)
         logger.info("")
         
+        # Test les serveurs après un délai de stabilisation
+        time.sleep(3)
+        self.run_health_checks()
+        
         # Attendre l'arrêt
         self.wait_and_monitor()
+    
+    def run_health_checks(self):
+        """Teste les endpoints clés après le démarrage"""
+        from urllib.request import Request, urlopen
+        from urllib.error import URLError, HTTPError
+        import json as json_lib
+        
+        logger.info("")
+        logger.info("🧪 Tests de santé des API...")
+        logger.info("")
+        
+        tests_passed = 0
+        tests_total = 0
+        
+        # Test 1: Django health
+        tests_total += 1
+        try:
+            req = Request(f"http://0.0.0.0:{self.django_port}/", method='GET')
+            with urlopen(req, timeout=3) as resp:
+                logger.info(f"   ✓ Django: {resp.status}")
+                tests_passed += 1
+        except Exception as e:
+            logger.warning(f"   ⚠️  Django: {type(e).__name__}")
+        
+        # Test 2: PostgREST direct
+        tests_total += 1
+        try:
+            req = Request(f"http://0.0.0.0:{self.postgrest_port}/communes?limit=1", method='GET')
+            with urlopen(req, timeout=3) as resp:
+                data = json_lib.loads(resp.read().decode())
+                logger.info(f"   ✓ PostgREST direct: {len(data)} records")
+                tests_passed += 1
+        except Exception as e:
+            logger.warning(f"   ⚠️  PostgREST direct: {type(e).__name__}")
+        
+        # Test 3: PostgREST info endpoint
+        tests_total += 1
+        try:
+            req = Request(f"http://0.0.0.0:{self.django_port}/api/postgrest-info/", method='GET')
+            with urlopen(req, timeout=3) as resp:
+                data = json_lib.loads(resp.read().decode())
+                logger.info(f"   ✓ PostgREST info: {data.get('postgrest_upstream')}")
+                tests_passed += 1
+        except Exception as e:
+            logger.warning(f"   ⚠️  PostgREST info: {type(e).__name__}")
+        
+        # Test 4: PostgREST proxy
+        tests_total += 1
+        try:
+            req = Request(f"http://0.0.0.0:{self.django_port}/api/data/communes?limit=1", method='GET')
+            with urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    data = json_lib.loads(resp.read().decode())
+                    logger.info(f"   ✓ PostgREST proxy: {len(data)} records")
+                    tests_passed += 1
+                else:
+                    logger.warning(f"   ⚠️  PostgREST proxy: HTTP {resp.status}")
+        except HTTPError as e:
+            if e.code == 401:
+                logger.info(f"   ℹ️  PostgREST proxy: {e.code} (auth required - expected)")
+                tests_passed += 1
+            else:
+                logger.warning(f"   ⚠️  PostgREST proxy: HTTP {e.code}")
+        except Exception as e:
+            logger.warning(f"   ⚠️  PostgREST proxy: {type(e).__name__}")
+        
+        logger.info("")
+        logger.info(f"📊 Résumé: {tests_passed}/{tests_total} tests réussis")
+        if tests_passed == tests_total:
+            logger.info("✓ Tous les tests sont passés!")
+        elif tests_passed >= tests_total - 1:
+            logger.info("⚠️  La plupart des tests sont passés, vérifiez les logs si nécessaire")
+        else:
+            logger.warning("❌ Plusieurs tests ont échoué, vérifiez la configuration")
+        logger.info("")
     
     def wait_and_monitor(self):
         """Attends que les processus se terminent et les monitore"""
