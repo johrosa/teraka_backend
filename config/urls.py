@@ -39,6 +39,8 @@ from django.urls import re_path
 from core.views import PostgrestProxyView
 from django.conf import settings
 from django.http import JsonResponse
+from django.views.static import serve
+import os
 
 # Importer le dashboard personnalisé et les vues RBAC
 from core.admin_dashboard import teraka_admin
@@ -51,6 +53,17 @@ def postgrest_info(request):
         'postgrest_upstream': getattr(settings, 'POSTGREST_UPSTREAM', f"http://127.0.0.1:{getattr(settings, 'POSTGREST_PORT', 3000)}"),
         'postgrest_port': getattr(settings, 'POSTGREST_PORT', 3000),
     })
+
+
+def test_api_page(request):
+    """Serve the test_api.html page"""
+    test_file = os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_api.html')
+    if os.path.exists(test_file):
+        with open(test_file, 'r', encoding='utf-8') as f:
+            from django.http import HttpResponse
+            return HttpResponse(f.read(), content_type='text/html')
+    from django.http import Http404
+    raise Http404("Test page not found")
 
 urlpatterns = [
     # ============================================================================
@@ -96,8 +109,10 @@ urlpatterns = [
     path('api/data-quality/', data_quality_report_view, name='api_data_quality'),
     path('api/export/', data_export_view, name='api_export'),
     
+    # Test page
+    path('test/', test_api_page, name='test_api_page'),
+    
     # Toutes les requêtes commençant par api/data/ iront vers PostgREST
     path('api/postgrest-info/', postgrest_info, name='postgrest_info'),
     re_path(r'^api/data/(?P<path>.*)$', PostgrestProxyView.as_view(), name='postgrest_proxy'),
 ]
-
