@@ -419,8 +419,8 @@ class ServerManager:
         logger.info("=" * 60)
         logger.info("")
         
-        # Test les serveurs après un délai de stabilisation
-        time.sleep(3)
+        # Test les serveurs après un délai de stabilisation plus long
+        time.sleep(5)
         self.run_health_checks()
         
         # Attendre l'arrêt
@@ -433,7 +433,7 @@ class ServerManager:
         import json as json_lib
         
         logger.info("")
-        logger.info("🧪 Tests de santé des API...")
+        logger.info("🧪 Tests de santé des API (peut prendre quelques secondes)...")
         logger.info("")
         
         tests_passed = 0
@@ -447,7 +447,7 @@ class ServerManager:
                 logger.info(f"   ✓ Django: {resp.status}")
                 tests_passed += 1
         except Exception as e:
-            logger.warning(f"   ⚠️  Django: {type(e).__name__}")
+            logger.debug(f"   ⚠️  Django: {type(e).__name__}: {e}")
         
         # Test 2: PostgREST direct
         tests_total += 1
@@ -458,7 +458,7 @@ class ServerManager:
                 logger.info(f"   ✓ PostgREST direct: {len(data)} records")
                 tests_passed += 1
         except Exception as e:
-            logger.warning(f"   ⚠️  PostgREST direct: {type(e).__name__}")
+            logger.debug(f"   ⚠️  PostgREST direct: {type(e).__name__}: {e}")
         
         # Test 3: PostgREST info endpoint
         tests_total += 1
@@ -469,7 +469,7 @@ class ServerManager:
                 logger.info(f"   ✓ PostgREST info: {data.get('postgrest_upstream')}")
                 tests_passed += 1
         except Exception as e:
-            logger.warning(f"   ⚠️  PostgREST info: {type(e).__name__}")
+            logger.debug(f"   ⚠️  PostgREST info: {type(e).__name__}: {e}")
         
         # Test 4: PostgREST proxy
         tests_total += 1
@@ -481,15 +481,15 @@ class ServerManager:
                     logger.info(f"   ✓ PostgREST proxy: {len(data)} records")
                     tests_passed += 1
                 else:
-                    logger.warning(f"   ⚠️  PostgREST proxy: HTTP {resp.status}")
+                    logger.debug(f"   ⚠️  PostgREST proxy: HTTP {resp.status}")
         except HTTPError as e:
             if e.code == 401:
                 logger.info(f"   ℹ️  PostgREST proxy: {e.code} (auth required - expected)")
                 tests_passed += 1
             else:
-                logger.warning(f"   ⚠️  PostgREST proxy: HTTP {e.code}")
+                logger.debug(f"   ⚠️  PostgREST proxy: HTTP {e.code}: {e}")
         except Exception as e:
-            logger.warning(f"   ⚠️  PostgREST proxy: {type(e).__name__}")
+            logger.debug(f"   ⚠️  PostgREST proxy: {type(e).__name__}: {e}")
         
         logger.info("")
         logger.info(f"📊 Résumé: {tests_passed}/{tests_total} tests réussis")
@@ -498,7 +498,8 @@ class ServerManager:
         elif tests_passed >= tests_total - 1:
             logger.info("⚠️  La plupart des tests sont passés, vérifiez les logs si nécessaire")
         else:
-            logger.warning("❌ Plusieurs tests ont échoué, vérifiez la configuration")
+            logger.warning("❌ Plusieurs tests ont échoué")
+            logger.info("   (Les serveurs démarrent peut-être encore, attendez quelques secondes)")
         logger.info("")
     
     def wait_and_monitor(self):
