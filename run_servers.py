@@ -163,6 +163,7 @@ class ServerManager:
             try:
                 template_path = DJANGO_DIR / "api" / "postgrest.conf.j2"
                 if template_path.exists():
+                    logger.info(f"📝 Utilisation du template PostgREST: {template_path}")
                     template_text = template_path.read_text(encoding='utf-8')
                     context = {
                         'db_uri': db_uri,
@@ -173,19 +174,36 @@ class ServerManager:
                         'server_port': self.postgrest_port,
                         'max_rows': getattr(dj_settings, 'POSTGREST_MAX_ROWS', 1000) if dj_settings else 1000,
                     }
+                    logger.debug(f"   Context pour template: {context}")
                     # Prefer jinja2 if available for full templating support
                     try:
                         import jinja2
                         rendered = jinja2.Template(template_text).render(**context)
-                    except Exception:
+                        logger.info("   ✓ Template rendu avec Jinja2")
+                    except ImportError:
+                        logger.info("   ℹ️  Jinja2 non disponible, utilisation du simple replace")
                         # Simple fallback: replace common {{ key }} placeholders
+                        rendered = template_text
+                        for k, v in context.items():
+                            rendered = rendered.replace(f"{{{{ {k} }}}}", str(v))
+                            rendered = rendered.replace(f"{{{{{k}}}}}", str(v))
+                    except Exception as jinja_err:
+                        logger.warning(f"   ⚠️  Erreur Jinja2: {jinja_err}, utilisation du simple replace")
                         rendered = template_text
                         for k, v in context.items():
                             rendered = rendered.replace(f"{{{{ {k} }}}}", str(v))
                             rendered = rendered.replace(f"{{{{{k}}}}}", str(v))
                     temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
                     temp_conf_path.write_text(rendered, encoding='utf-8')
+                    logger.info(f"   📄 Config PostgREST générée: {temp_conf_path}")
+                    logger.debug(f"   Contenu de la config:")
+                    for line in rendered.splitlines():
+                        if 'secret' in line.lower() or 'password' in line.lower():
+                            logger.debug(f"      {line[:30]}***[MASKED]***")
+                        else:
+                            logger.debug(f"      {line}")
                 else:
+                    logger.warning(f"⚠️  Template {template_path} non trouvé, utilisation du fallback (modification de config)")
                     # Fallback to previous behavior of modifying existing conf if no template exists
                     original_conf = self.postgrest_conf.read_text(encoding='utf-8')
                     new_conf_lines = []
@@ -213,8 +231,11 @@ class ServerManager:
                         new_conf_lines.insert(insert_at, f'db-uri = "{db_uri}"')
                     temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
                     temp_conf_path.write_text('\n'.join(new_conf_lines), encoding='utf-8')
+                    logger.info(f"   📄 Config PostgREST générée (fallback): {temp_conf_path}")
             except Exception as e:
                 logger.warning(f"⚠️  Impossible de générer le fichier de conf PostgREST: {e}")
+                import traceback
+                logger.debug(traceback.format_exc())
                 temp_conf_path = self.postgrest_conf
             
             # PostgREST prend le fichier de config directement en argument
