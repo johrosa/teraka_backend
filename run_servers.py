@@ -161,33 +161,58 @@ class ServerManager:
 
             # Générer un fichier de config temporaire avec le bon server-port et db-uri
             try:
-                original_conf = self.postgrest_conf.read_text(encoding='utf-8')
-                new_conf_lines = []
-                replaced_port = False
-                replaced_dburi = False
-                for line in original_conf.splitlines():
-                    stripped = line.strip()
-                    if stripped.startswith('server-port'):
+                template_path = DJANGO_DIR / "api" / "postgrest.conf.j2"
+                if template_path.exists():
+                    template_text = template_path.read_text(encoding='utf-8')
+                    context = {
+                        'db_uri': db_uri,
+                        'db_schema': getattr(dj_settings, 'DB_SCHEMA', 'public') if dj_settings else 'public',
+                        'db_anon_role': getattr(dj_settings, 'DB_ANON_ROLE', 'web_anon') if dj_settings else 'web_anon',
+                        'jwt_secret': getattr(dj_settings, 'SIMPLE_JWT', {}).get('SIGNING_KEY', getattr(dj_settings, 'SECRET_KEY', '')) if dj_settings else '',
+                        'server_host': getattr(dj_settings, 'POSTGREST_HOST', '0.0.0.0') if dj_settings else '0.0.0.0',
+                        'server_port': self.postgrest_port,
+                        'max_rows': getattr(dj_settings, 'POSTGREST_MAX_ROWS', 1000) if dj_settings else 1000,
+                    }
+                    # Prefer jinja2 if available for full templating support
+                    try:
+                        import jinja2
+                        rendered = jinja2.Template(template_text).render(**context)
+                    except Exception:
+                        # Simple fallback: replace common {{ key }} placeholders
+                        rendered = template_text
+                        for k, v in context.items():
+                            rendered = rendered.replace(f"{{{{ {k} }}}}", str(v))
+                            rendered = rendered.replace(f"{{{{{k}}}}}", str(v))
+                    temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
+                    temp_conf_path.write_text(rendered, encoding='utf-8')
+                else:
+                    # Fallback to previous behavior of modifying existing conf if no template exists
+                    original_conf = self.postgrest_conf.read_text(encoding='utf-8')
+                    new_conf_lines = []
+                    replaced_port = False
+                    replaced_dburi = False
+                    for line in original_conf.splitlines():
+                        stripped = line.strip()
+                        if stripped.startswith('server-port'):
+                            new_conf_lines.append(f'server-port = {self.postgrest_port}')
+                            replaced_port = True
+                        elif stripped.startswith('db-uri'):
+                            new_conf_lines.append(f'db-uri = "{db_uri}"')
+                            replaced_dburi = True
+                        else:
+                            new_conf_lines.append(line)
+                    if not replaced_port:
                         new_conf_lines.append(f'server-port = {self.postgrest_port}')
-                        replaced_port = True
-                    elif stripped.startswith('db-uri'):
-                        new_conf_lines.append(f'db-uri = "{db_uri}"')
-                        replaced_dburi = True
-                    else:
-                        new_conf_lines.append(line)
-                if not replaced_port:
-                    new_conf_lines.append(f'server-port = {self.postgrest_port}')
-                if not replaced_dburi:
-                    # Insert db-uri near the top for readability
-                    insert_at = 0
-                    for idx, l in enumerate(new_conf_lines):
-                        if l.strip().startswith('#'):
-                            continue
-                        insert_at = idx
-                        break
-                    new_conf_lines.insert(insert_at, f'db-uri = "{db_uri}"')
-                temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
-                temp_conf_path.write_text('\n'.join(new_conf_lines), encoding='utf-8')
+                    if not replaced_dburi:
+                        insert_at = 0
+                        for idx, l in enumerate(new_conf_lines):
+                            if l.strip().startswith('#'):
+                                continue
+                            insert_at = idx
+                            break
+                        new_conf_lines.insert(insert_at, f'db-uri = "{db_uri}"')
+                    temp_conf_path = DJANGO_DIR / "api" / f"postgrest.generated.{self.postgrest_port}.conf"
+                    temp_conf_path.write_text('\n'.join(new_conf_lines), encoding='utf-8')
             except Exception as e:
                 logger.warning(f"⚠️  Impossible de générer le fichier de conf PostgREST: {e}")
                 temp_conf_path = self.postgrest_conf

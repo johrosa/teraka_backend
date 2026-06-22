@@ -1,0 +1,24 @@
+# --- Connexion à la base de données ---
+# Format : postgres://utilisateur:mot_de_passe@hote:port/nom_db
+# Rendered from Django settings (DATABASE_URL or DB_*). Do not store secrets in VCS.
+db-uri = "{{ db_uri }}"
+
+# --- Schéma à exposer ---
+# Généralement 'public', mais mettez le nom du schéma où sont vos tables
+db-schema = "{{ db_schema }}"
+
+# --- Rôles et Sécurité ---
+# Le rôle utilisé pour les requêtes sans authentification (lecture seule publique par ex.)
+db-anon-role = "{{ db_anon_role }}"
+
+# La clé secrète pour décoder les JWT envoyés par Django
+# ATTENTION : Doit être IDENTIQUE à la SIGNING_KEY de Django (min. 32 caractères)
+jwt-secret = "{{ jwt_secret }}"
+
+# --- Configuration Serveur ---
+server-host = "{{ server_host }}"
+server-port = {{ server_port }}
+
+# --- Optimisation pour les grosses bases ---
+# Nombre max de lignes retournées par requête (évite de saturer le plugin QGIS)
+max-rows = {{ max_rows }}
