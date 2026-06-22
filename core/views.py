@@ -535,16 +535,21 @@ from django.views.decorators.csrf import csrf_exempt
 import requests 
 @method_decorator(csrf_exempt, name='dispatch')
 class PostgrestProxyView(View):
-    # L'adresse interne où tourne PostgREST (non publiée sur le web).
-    try:
-        _upstream = getattr(settings, 'POSTGREST_UPSTREAM', None)
-        if _upstream:
-            upstream = _upstream
-        else:
-            upstream = f"http://127.0.0.1:{getattr(settings, 'POSTGREST_PORT', 3000)}"
-    except Exception:
-        upstream = 'http://127.0.0.1:3000'
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+
+    @property
+    def upstream(self):
+        """Dynamically build upstream URL from settings to always use the correct port."""
+        try:
+            # If POSTGREST_UPSTREAM is explicitly set, use it as-is
+            _upstream = getattr(settings, 'POSTGREST_UPSTREAM', None)
+            if _upstream:
+                return _upstream
+            # Otherwise build from host (default 127.0.0.1) and POSTGREST_PORT from settings
+            port = getattr(settings, 'POSTGREST_PORT', 3000)
+            return f"http://127.0.0.1:{port}"
+        except Exception:
+            return 'http://127.0.0.1:3000'
 
     def dispatch(self, request, *args, **kwargs):
         # On tente l'authentification via JWT si l'utilisateur n'est pas déjà authentifié par session
