@@ -185,6 +185,12 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD', 'ad,in')
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
+# Server Port Configuration
+DJANGO_PORT = int(os.environ.get('DJANGO_PORT', '8050'))
+POSTGREST_PORT = int(os.environ.get('POSTGREST_PORT', '3050'))
+ADMINER_PORT = int(os.environ.get('ADMINER_PORT', '8080'))
+POSTGRES_PORT = int(os.environ.get('POSTGRES_PORT', DB_PORT))
+
 if DATABASE_URL:
     from urllib.parse import urlparse
     parsed = urlparse(DATABASE_URL)
@@ -194,6 +200,7 @@ if DATABASE_URL:
     DB_PASSWORD = parsed.password or DB_PASSWORD
     DB_HOST = parsed.hostname or DB_HOST
     DB_PORT = str(parsed.port or DB_PORT)
+    POSTGRES_PORT = int(DB_PORT)
 
 DATABASES = {
     'default': {
@@ -270,3 +277,33 @@ if os.name == 'nt': # Si vous êtes sur Windows
         GEOS_LIBRARY_PATH = os.path.join(VENV_PATH, 'Library', 'bin', 'geos_c.dll')
 
 POSTGREST_UPSTREAM = os.environ.get('POSTGREST_UPSTREAM', 'http://127.0.0.1:3000')
+
+# ============================================================================
+# PORT CONFIGURATION SUMMARY
+# ============================================================================
+# Configure ports via environment variables or defaults below:
+#
+# Environment Variables:
+#   DJANGO_PORT=8000         — Django development/Gunicorn server
+#   POSTGREST_PORT=3000      — PostgREST API server
+#   ADMINER_PORT=8080        — Adminer database UI (optional)
+#   POSTGRES_PORT=5432       — PostgreSQL database
+#   DB_PORT=5432             — Alias for POSTGRES_PORT
+#
+# Usage in code:
+#   from django.conf import settings
+#   print(settings.DJANGO_PORT)
+#   print(settings.POSTGREST_PORT)
+#   print(settings.POSTGRES_PORT)
+#
+# Docker Compose:
+#   export DJANGO_PORT=8000 POSTGREST_PORT=3000
+#   docker compose up
+#
+# ============================================================================
+PORT_CONFIG = {
+    'django': DJANGO_PORT,
+    'postgrest': POSTGREST_PORT,
+    'adminer': ADMINER_PORT,
+    'postgres': POSTGRES_PORT,
+}
