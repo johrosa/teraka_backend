@@ -202,7 +202,7 @@ def audit_hash_verify_view(request):
 # ============================================================================
 
 
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "HEAD"])
 def home_page_view(request):
     """
     Page d'accueil de la plateforme Teraka

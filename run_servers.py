@@ -439,10 +439,10 @@ class ServerManager:
         tests_passed = 0
         tests_total = 0
         
-        # Test 1: Django health
+        # Test 1: Django health (use GET, not HEAD)
         tests_total += 1
         try:
-            req = Request(f"http://0.0.0.0:{self.django_port}/", method='GET')
+            req = Request(f"http://0.0.0.0:{self.django_port}/api/postgrest-info/", method='GET')
             with urlopen(req, timeout=3) as resp:
                 logger.info(f"   ✓ Django: {resp.status}")
                 tests_passed += 1
