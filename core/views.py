@@ -577,6 +577,11 @@ class PostgrestProxyView(View):
             method=request.method,
         )
 
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔗 PostgREST Proxy: {request.method} {target_url}")
+        logger.info(f"   Upstream: {self.upstream}")
+
         try:
             with urlopen(proxy_request, timeout=30) as upstream_response:
                 return self.build_django_response(
@@ -585,16 +590,31 @@ class PostgrestProxyView(View):
                     upstream_response.headers,
                 )
         except HTTPError as exc:
+            logger.error(f"❌ PostgREST HTTP Error {exc.code}: {exc.read().decode()}")
             return self.build_django_response(
                 exc.read(),
                 exc.code,
                 exc.headers,
             )
         except URLError as exc:
+            logger.error(f"❌ PostgREST URLError: {exc.reason}")
             return JsonResponse(
                 {
                     "detail": "PostgREST est inaccessible.",
                     "error": str(exc.reason),
+                    "upstream": self.upstream,
+                },
+                status=502,
+            )
+        except Exception as exc:
+            logger.error(f"❌ Erreur proxy PostgREST: {type(exc).__name__}: {exc}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return JsonResponse(
+                {
+                    "detail": "Erreur lors du proxy PostgREST.",
+                    "error": str(exc),
+                    "upstream": self.upstream,
                 },
                 status=502,
             )
