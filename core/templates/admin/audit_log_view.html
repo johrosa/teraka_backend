@@ -124,7 +124,8 @@
             <thead>
                 <tr>
                     <th>#ID</th>
-                    <th>🕐 Date/Heure</th>
+                    <th>📅 Date</th>
+                    <th>🕐 Heure</th>
                     <th>📊 Table</th>
                     <th>⚙️ Opération</th>
                     <th>👤 Utilisateur</th>
@@ -138,7 +139,12 @@
                     <td class="id-cell">{{ entry.id }}</td>
                     <td class="date-cell">
                         <span title="{{ entry.event_time_formatted }}">
-                            {{ entry.event_time_formatted }}
+                            {{ entry.event_date_formatted|default:entry.event_time_formatted }}
+                        </span>
+                    </td>
+                    <td class="time-cell">
+                        <span title="{{ entry.event_time_formatted }}">
+                            {{ entry.event_hour_formatted|default:"-" }}
                         </span>
                     </td>
                     <td class="table-cell">
@@ -428,7 +434,13 @@
 }
 
 .date-cell {
-    width: 150px;
+    width: 110px;
+    color: #2c3e50;
+    font-size: 0.9em;
+}
+
+.time-cell {
+    width: 90px;
     color: #7f8c8d;
     font-size: 0.9em;
 }

@@ -81,8 +81,11 @@ def audit_log_view(request):
         
         # Format dates for display
         for entry in audit_entries:
+            if entry.get('event_date'):
+                entry['event_date_formatted'] = entry['event_date'].strftime('%Y-%m-%d')
             if entry.get('event_time'):
                 entry['event_time_formatted'] = entry['event_time'].strftime('%Y-%m-%d %H:%M:%S')
+                entry['event_hour_formatted'] = entry['event_time'].strftime('%H:%M:%S')
         
         # Pagination
         paginator = Paginator(audit_entries, 50)
@@ -536,6 +539,7 @@ import requests
 @method_decorator(csrf_exempt, name='dispatch')
 class PostgrestProxyView(View):
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+    write_methods = {'POST', 'PUT', 'PATCH', 'DELETE'}
 
     @property
     def upstream(self):
@@ -552,14 +556,34 @@ class PostgrestProxyView(View):
             return 'http://0.0.0.0:3000'
 
     def dispatch(self, request, *args, **kwargs):
+        requires_write_token = request.method in self.write_methods
+        authorization = request.headers.get('Authorization', '')
+        has_bearer_token = authorization.lower().startswith('bearer ')
+
+        if requires_write_token and not has_bearer_token:
+            return JsonResponse(
+                {"detail": "JWT bearer token required for API modifications."},
+                status=401,
+            )
+
         # On tente l'authentification via JWT si l'utilisateur n'est pas déjà authentifié par session
-        if not request.user.is_authenticated:
+        jwt_auth_failed = False
+        if has_bearer_token:
             try:
                 auth_header = JWTStatelessUserAuthentication().authenticate(request)
                 if auth_header:
                     request.user, _ = auth_header
             except Exception:
-                pass
+                jwt_auth_failed = True
+
+        if jwt_auth_failed:
+            return JsonResponse({"detail": "JWT bearer token invalid."}, status=401)
+
+        if requires_write_token and not request.user.is_authenticated:
+            return JsonResponse(
+                {"detail": "Valid JWT bearer token required for API modifications."},
+                status=401,
+            )
 
         # Vérification manuelle de l'authentification car ProxyView n'est pas une APIView de DRF
         if not request.user.is_authenticated:

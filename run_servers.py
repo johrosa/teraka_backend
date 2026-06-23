@@ -439,42 +439,45 @@ class ServerManager:
         tests_passed = 0
         tests_total = 0
         
-        # Test 1: Django health (use GET, not HEAD)
+        # Test 1: Django health (via a known API endpoint)
         tests_total += 1
         try:
-            req = Request(f"http://0.0.0.0:{self.django_port}/api/postgrest-info/", method='GET')
+            req = Request(f"http://localhost:{self.django_port}/api/system-health/", method='GET')
             with urlopen(req, timeout=3) as resp:
-                logger.info(f"   ✓ Django: {resp.status}")
-                tests_passed += 1
+                if resp.status == 200:
+                    logger.info(f"   ✓ Django health: OK ({resp.status})")
+                    tests_passed += 1
         except Exception as e:
-            logger.debug(f"   ⚠️  Django: {type(e).__name__}: {e}")
+            logger.warning(f"   ❌ Django health: FAILED ({type(e).__name__})")
         
         # Test 2: PostgREST direct
         tests_total += 1
         try:
-            req = Request(f"http://0.0.0.0:{self.postgrest_port}/communes?limit=1", method='GET')
+            req = Request(f"http://localhost:{self.postgrest_port}/communes?limit=1", method='GET')
             with urlopen(req, timeout=3) as resp:
                 data = json_lib.loads(resp.read().decode())
-                logger.info(f"   ✓ PostgREST direct: {len(data)} records")
-                tests_passed += 1
+                if resp.status == 200 and isinstance(data, list):
+                    logger.info(f"   ✓ PostgREST direct: OK ({len(data)} record(s))")
+                    tests_passed += 1
         except Exception as e:
-            logger.debug(f"   ⚠️  PostgREST direct: {type(e).__name__}: {e}")
+            logger.warning(f"   ❌ PostgREST direct: FAILED ({type(e).__name__})")
         
         # Test 3: PostgREST info endpoint
         tests_total += 1
         try:
-            req = Request(f"http://0.0.0.0:{self.django_port}/api/postgrest-info/", method='GET')
+            req = Request(f"http://localhost:{self.django_port}/api/postgrest-info/", method='GET')
             with urlopen(req, timeout=3) as resp:
                 data = json_lib.loads(resp.read().decode())
-                logger.info(f"   ✓ PostgREST info: {data.get('postgrest_upstream')}")
-                tests_passed += 1
+                if resp.status == 200 and 'postgrest_upstream' in data:
+                    logger.info(f"   ✓ PostgREST info: OK (Upstream: {data.get('postgrest_upstream')})")
+                    tests_passed += 1
         except Exception as e:
-            logger.debug(f"   ⚠️  PostgREST info: {type(e).__name__}: {e}")
+            logger.warning(f"   ❌ PostgREST info: FAILED ({type(e).__name__})")
         
-        # Test 4: PostgREST proxy info (test that proxy works, not specific tables)
+        # Test 4: PostgREST proxy (test that proxy works for a table)
         tests_total += 1
         try:
-            req = Request(f"http://0.0.0.0:{self.django_port}/api/postgrest-info/", method='GET')
+            req = Request(f"http://localhost:{self.django_port}/api/data/communes?limit=1", method='GET')
             with urlopen(req, timeout=3) as resp:
                 if resp.status == 200:
                     data = json_lib.loads(resp.read().decode())
@@ -483,7 +486,7 @@ class ServerManager:
                 else:
                     logger.debug(f"   ⚠️  PostgREST proxy info: HTTP {resp.status}")
         except Exception as e:
-            logger.debug(f"   ⚠️  PostgREST proxy info: {type(e).__name__}: {e}")
+            logger.warning(f"   ❌ PostgREST proxy: FAILED ({type(e).__name__})")
         
         logger.info("")
         logger.info(f"📊 Résumé: {tests_passed}/{tests_total} tests réussis")
@@ -589,7 +592,8 @@ def main():
     
     args = parser.parse_args()
 
-    # Déterminer les ports en priorité: CLI args > Django settings > ENV > hardcoded defaults    
+    # Déterminer les ports en priorité: CLI args > Django settings > ENV > hardcoded defaults
+    
     if dj_settings:
         default_django_port = getattr(dj_settings, 'DJANGO_PORT', 8000)
         default_postgrest_port = getattr(dj_settings, 'POSTGREST_PORT', 3000)

@@ -240,7 +240,7 @@ CORS_ALLOWED_ORIGINS = [
     f"http://localhost:{POSTGREST_PORT}",
     f"http://0.0.0.0:{POSTGREST_PORT}",
     f"http://127.0.0.1:{POSTGREST_PORT}",
-    # Legacy hardcoded ports for backward compatibility
+
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
@@ -314,3 +314,10 @@ PORT_CONFIG = {
     'adminer': ADMINER_PORT,
     'postgres': POSTGRES_PORT,
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Augmenter la limite de taille pour les requêtes POST/PUT (ex: migration de données)
+# La valeur par défaut est 2.5MB, ce qui est souvent insuffisant.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 MB
