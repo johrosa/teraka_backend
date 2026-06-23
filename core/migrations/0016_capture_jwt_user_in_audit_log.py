@@ -13,6 +13,8 @@ WHERE event_date IS NULL;
 ALTER TABLE public.audit_log
     ALTER COLUMN event_date SET DEFAULT CURRENT_DATE;
 
+DROP VIEW IF EXISTS public.audit_log_view;
+
 CREATE OR REPLACE FUNCTION public.audit_log_trigger() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -92,6 +94,8 @@ LEFT JOIN public.users u ON u.uuid_user::text = a.changed_by;
 
 
 reverse_sql = r"""
+DROP VIEW IF EXISTS public.audit_log_view;
+
 CREATE OR REPLACE FUNCTION public.audit_log_trigger() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE

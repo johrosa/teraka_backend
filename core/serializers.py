@@ -24,7 +24,12 @@ class PostgrestTokenSerializer(TokenObtainPairSerializer):
         token['role'] = role
         token['user_id'] = str(user.pk)
         token['username'] = user.username
-        # On récupère un droit de validation (ex: si l'user est staff)
-        token['is_validator'] = user.is_staff
+        try:
+            from core.models_rbac import VALIDATOR_ROLES
+            is_validator = role in VALIDATOR_ROLES or role == 'postgres'
+        except Exception:
+            is_validator = user.is_staff
+
+        token['is_validator'] = is_validator
 
         return token
